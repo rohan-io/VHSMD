@@ -1,0 +1,131 @@
+import React, { useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
+
+import { theme } from "@/src/constants/theme";
+import { Header } from "@/src/components/Header";
+import { getNotifications, markNotificationRead } from "@/src/api/mch";
+import { NotificationItem } from "@/src/types";
+
+const PRIORITY_COLOR: Record<string, string> = {
+  CRITICAL: theme.colors.error,
+  HIGH: "#EA580C",
+  MEDIUM: theme.colors.warning,
+  LOW: theme.colors.info,
+};
+
+const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  IMMUNIZATION: "medkit",
+  HIGH_RISK: "warning",
+  CAMPAIGN: "megaphone",
+};
+
+export default function NotificationsScreen() {
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await getNotifications();
+      setItems(res.items);
+      setUnread(res.unread_count);
+    } catch (e) {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const handleRead = async (n: NotificationItem) => {
+    if (n.is_read) return;
+    setItems((prev) => prev.map((i) => (i.id === n.id ? { ...i, is_read: true } : i)));
+    setUnread((u) => Math.max(0, u - 1));
+    try { await markNotificationRead(n.id); } catch {}
+  };
+
+  const renderItem = ({ item }: { item: NotificationItem }) => {
+    const color = PRIORITY_COLOR[item.priority] || theme.colors.info;
+    return (
+      <Pressable testID={`notification-${item.id}`} onPress={() => handleRead(item)} style={[styles.card, !item.is_read && styles.cardUnread]}>
+        <View style={[styles.iconBox, { backgroundColor: `${color}18` }]}>
+          <Ionicons name={CATEGORY_ICON[item.category] || "notifications"} size={20} color={color} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
+            {!item.is_read && <View style={styles.unreadDot} />}
+          </View>
+          <Text style={styles.msg}>{item.message}</Text>
+          {item.beneficiary_name ? <Text style={styles.beneficiary}>👤 {item.beneficiary_name}</Text> : null}
+          <View style={styles.cardFooter}>
+            <View style={[styles.priorityPill, { backgroundColor: `${color}18` }]}>
+              <Text style={[styles.priorityText, { color }]}>{item.priority}</Text>
+            </View>
+            <Text style={styles.time}>{new Date(item.created_at).toLocaleString()}</Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
+
+  return (
+    <View style={styles.root}>
+      <Header title="Notifications" showBack showOfflineToggle={false} />
+      {loading ? (
+        <View style={styles.centerFill}><ActivityIndicator size="large" color={theme.colors.brand} /></View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(i) => i.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <View style={styles.mockBanner}>
+              <Ionicons name="information-circle" size={15} color={theme.colors.info} />
+              <Text style={styles.mockText}>Mock FCM panel — demonstrates push notification delivery. {unread} unread.</Text>
+            </View>
+          }
+          ListEmptyComponent={
+            <View style={styles.centerFill}>
+              <Ionicons name="notifications-off-outline" size={40} color={theme.colors.textMuted} />
+              <Text style={styles.emptyText}>No notifications yet.</Text>
+            </View>
+          }
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: theme.colors.surface },
+  centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 8, minHeight: 240 },
+  emptyText: { fontSize: 13, color: theme.colors.textSecondary },
+  listContent: { padding: 16, paddingBottom: 32 },
+  mockBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: theme.colors.infoLight, borderRadius: theme.radius.md, padding: 12, marginBottom: 12 },
+  mockText: { flex: 1, fontSize: 11, color: "#075985", fontWeight: "600" },
+  card: { flexDirection: "row", gap: 12, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border },
+  cardUnread: { borderColor: theme.colors.brand, backgroundColor: "#F0FDFA" },
+  iconBox: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
+  title: { flex: 1, fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.brand },
+  msg: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 3, lineHeight: 17 },
+  beneficiary: { fontSize: 11, color: theme.colors.textMuted, marginTop: 4, fontWeight: "600" },
+  cardFooter: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
+  priorityPill: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4 },
+  priorityText: { fontSize: 9, fontWeight: "800" },
+  time: { fontSize: 10, color: theme.colors.textMuted },
+});
