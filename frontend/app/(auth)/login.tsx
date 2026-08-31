@@ -21,13 +21,14 @@ export default function LoginScreen() {
   const router = useRouter();
   const { login, isLoading } = useAuth();
 
-  const [username, setUsername] = useState("worker01");
-  const [password, setPassword] = useState("Worker@123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<"Health Worker" | "Administrator" | null>(null);
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -45,15 +46,23 @@ export default function LoginScreen() {
         router.replace("/(tabs)");
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Invalid credentials. Please try demo accounts below.");
+      setErrorMsg(err.message || "Invalid credentials. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const selectCredentials = (uname: string, pwd: string) => {
-    setUsername(uname);
-    setPassword(pwd);
+  const selectRole = (role: "Health Worker" | "Administrator") => {
+    setSelectedRole(role);
+    setUsername("");
+    setPassword("");
+    setErrorMsg(null);
+  };
+
+  const resetRole = () => {
+    setSelectedRole(null);
+    setUsername("");
+    setPassword("");
     setErrorMsg(null);
   };
 
@@ -89,48 +98,54 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* Login Credentials (no persona names) */}
-        <View style={styles.credSection}>
-          <Text style={styles.sectionLabel}>DEMO LOGIN CREDENTIALS:</Text>
-          <View style={styles.credGrid}>
-            <Pressable
-              testID="cred-health-worker"
-              onPress={() => selectCredentials("worker01", "Worker@123")}
-              style={({ pressed }) => [styles.credCard, pressed && styles.pressed]}
-            >
-              <View style={[styles.credIcon, { backgroundColor: theme.colors.brandLight }]}>
-                <Ionicons name="woman" size={18} color={theme.colors.brandDark} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.credRole}>Health Worker Login</Text>
-                <Text style={styles.credText}>Username: worker01</Text>
-                <Text style={styles.credText}>Password: Worker@123</Text>
-              </View>
-              <Ionicons name="chevron-forward-circle-outline" size={20} color={theme.colors.textMuted} />
-            </Pressable>
+        {/* Role selection (shown until a role is chosen) */}
+        {!selectedRole && (
+          <View style={styles.credSection}>
+            <Text style={styles.sectionLabel}>SELECT YOUR ROLE TO SIGN IN:</Text>
+            <View style={styles.credGrid}>
+              <Pressable
+                testID="role-health-worker"
+                onPress={() => selectRole("Health Worker")}
+                style={({ pressed }) => [styles.credCard, pressed && styles.pressed]}
+              >
+                <View style={[styles.credIcon, { backgroundColor: theme.colors.brandLight }]}>
+                  <Ionicons name="woman" size={18} color={theme.colors.brandDark} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.credRole}>Health Worker Login</Text>
+                  <Text style={styles.credText}>ANM / ASHA field worker access</Text>
+                </View>
+                <Ionicons name="chevron-forward-circle-outline" size={20} color={theme.colors.textMuted} />
+              </Pressable>
 
-            <Pressable
-              testID="cred-admin"
-              onPress={() => selectCredentials("admin", "Admin@123")}
-              style={({ pressed }) => [styles.credCard, pressed && styles.pressed]}
-            >
-              <View style={[styles.credIcon, { backgroundColor: "#FEF3C7" }]}>
-                <Ionicons name="shield-checkmark" size={18} color="#92400E" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.credRole}>Administrator Login</Text>
-                <Text style={styles.credText}>Username: admin</Text>
-                <Text style={styles.credText}>Password: Admin@123</Text>
-              </View>
-              <Ionicons name="chevron-forward-circle-outline" size={20} color={theme.colors.textMuted} />
+              <Pressable
+                testID="role-admin"
+                onPress={() => selectRole("Administrator")}
+                style={({ pressed }) => [styles.credCard, pressed && styles.pressed]}
+              >
+                <View style={[styles.credIcon, { backgroundColor: "#FEF3C7" }]}>
+                  <Ionicons name="shield-checkmark" size={18} color="#92400E" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.credRole}>Administrator Login</Text>
+                  <Text style={styles.credText}>District / block oversight access</Text>
+                </View>
+                <Ionicons name="chevron-forward-circle-outline" size={20} color={theme.colors.textMuted} />
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {/* Credentials Form (shown after role selected) */}
+        {selectedRole && (
+        <View style={styles.formCard}>
+          <View style={styles.formHeaderRow}>
+            <Text style={styles.formTitle}>{selectedRole} Login</Text>
+            <Pressable testID="login-change-role-btn" onPress={resetRole} style={styles.changeRoleBtn}>
+              <Ionicons name="swap-horizontal" size={14} color={theme.colors.brand} />
+              <Text style={styles.changeRoleText}>Change</Text>
             </Pressable>
           </View>
-          <Text style={styles.credHint}>Tap a card to auto-fill, then Sign In.</Text>
-        </View>
-
-        {/* Manual Credentials Form Card */}
-        <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Field Worker / Admin Login</Text>
 
           {errorMsg && (
             <View style={styles.errorContainer} testID="login-error-alert">
@@ -154,7 +169,7 @@ export default function LoginScreen() {
                 style={styles.textInput}
                 value={username}
                 onChangeText={setUsername}
-                placeholder="e.g. worker01 or admin"
+                placeholder="Enter your username"
                 placeholderTextColor={theme.colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -177,7 +192,7 @@ export default function LoginScreen() {
                 style={styles.textInput}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="••••••••••••"
+                placeholder="Enter your password"
                 placeholderTextColor={theme.colors.textMuted}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
@@ -240,6 +255,7 @@ export default function LoginScreen() {
             )}
           </Pressable>
         </View>
+        )}
 
         {/* Security & Offline Notice */}
         <View style={styles.securityNotice}>
@@ -419,6 +435,26 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.textPrimary,
     marginBottom: 16,
+  },
+  formHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  changeRoleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: theme.colors.brandLight,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.radius.pill,
+  },
+  changeRoleText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.brand,
   },
   errorContainer: {
     flexDirection: "row",
