@@ -14,12 +14,12 @@ import { useRouter } from "expo-router";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { theme } from "@/src/constants/theme";
-import { useAuth, DEMO_USERS } from "@/src/context/AuthContext";
+import { useAuth } from "@/src/context/AuthContext";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login, switchDemoPersona, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
 
   const [username, setUsername] = useState("worker01");
   const [password, setPassword] = useState("Worker@123");
@@ -51,23 +51,10 @@ export default function LoginScreen() {
     }
   };
 
-  const selectDemoAccount = async (dUser: typeof DEMO_USERS[0]) => {
-    setUsername(dUser.username);
-    setPassword(dUser.username === "admin" ? "Admin@123" : "Worker@123");
+  const selectCredentials = (uname: string, pwd: string) => {
+    setUsername(uname);
+    setPassword(pwd);
     setErrorMsg(null);
-    setSubmitting(true);
-    try {
-      await switchDemoPersona(dUser.role, dUser.username);
-      if (dUser.role === "Administrator") {
-        router.replace("/(admin)");
-      } else {
-        router.replace("/(tabs)");
-      }
-    } catch (e: any) {
-      setErrorMsg(e.message || "Failed to switch account");
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   return (
@@ -102,63 +89,43 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* Quick One-Tap Demo Persona Switcher */}
-        <View style={styles.demoSection}>
-          <Text style={styles.sectionLabel}>TAP TO LOGIN AS DEMO PERSONA:</Text>
-          <View style={styles.demoGrid}>
-            {DEMO_USERS.map((demo) => {
-              const isSelected = username.toLowerCase() === demo.username.toLowerCase();
-              return (
-                <Pressable
-                  key={demo.username}
-                  testID={`demo-login-btn-${demo.username}`}
-                  onPress={() => selectDemoAccount(demo)}
-                  style={({ pressed }) => [
-                    styles.demoCard,
-                    isSelected && styles.demoCardSelected,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <View style={styles.demoCardTop}>
-                    <View
-                      style={[
-                        styles.demoRoleBadge,
-                        {
-                          backgroundColor:
-                            demo.role === "Administrator"
-                              ? "#FEF3C7"
-                              : theme.colors.brandLight,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.demoRoleText,
-                          {
-                            color:
-                              demo.role === "Administrator"
-                                ? "#92400E"
-                                : theme.colors.brandDark,
-                          },
-                        ]}
-                      >
-                        {demo.role}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name={isSelected ? "checkmark-circle" : "arrow-forward-circle-outline"}
-                      size={18}
-                      color={isSelected ? theme.colors.brand : theme.colors.textMuted}
-                    />
-                  </View>
-                  <Text style={styles.demoName}>{demo.label}</Text>
-                  <Text style={styles.demoSub} numberOfLines={1}>
-                    {demo.subLabel}
-                  </Text>
-                </Pressable>
-              );
-            })}
+        {/* Login Credentials (no persona names) */}
+        <View style={styles.credSection}>
+          <Text style={styles.sectionLabel}>DEMO LOGIN CREDENTIALS:</Text>
+          <View style={styles.credGrid}>
+            <Pressable
+              testID="cred-health-worker"
+              onPress={() => selectCredentials("worker01", "Worker@123")}
+              style={({ pressed }) => [styles.credCard, pressed && styles.pressed]}
+            >
+              <View style={[styles.credIcon, { backgroundColor: theme.colors.brandLight }]}>
+                <Ionicons name="woman" size={18} color={theme.colors.brandDark} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.credRole}>Health Worker Login</Text>
+                <Text style={styles.credText}>Username: worker01</Text>
+                <Text style={styles.credText}>Password: Worker@123</Text>
+              </View>
+              <Ionicons name="chevron-forward-circle-outline" size={20} color={theme.colors.textMuted} />
+            </Pressable>
+
+            <Pressable
+              testID="cred-admin"
+              onPress={() => selectCredentials("admin", "Admin@123")}
+              style={({ pressed }) => [styles.credCard, pressed && styles.pressed]}
+            >
+              <View style={[styles.credIcon, { backgroundColor: "#FEF3C7" }]}>
+                <Ionicons name="shield-checkmark" size={18} color="#92400E" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.credRole}>Administrator Login</Text>
+                <Text style={styles.credText}>Username: admin</Text>
+                <Text style={styles.credText}>Password: Admin@123</Text>
+              </View>
+              <Ionicons name="chevron-forward-circle-outline" size={20} color={theme.colors.textMuted} />
+            </Pressable>
           </View>
+          <Text style={styles.credHint}>Tap a card to auto-fill, then Sign In.</Text>
         </View>
 
         {/* Manual Credentials Form Card */}
@@ -385,7 +352,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.brandDark,
   },
-  demoSection: {
+  credSection: {
     marginTop: 12,
     marginBottom: 16,
   },
@@ -396,48 +363,44 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 0.5,
   },
-  demoGrid: {
+  credGrid: {
     gap: 8,
   },
-  demoCard: {
+  credCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     backgroundColor: theme.colors.surfaceSecondary,
     borderRadius: theme.radius.md,
     padding: 12,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  demoCardSelected: {
-    borderColor: theme.colors.brand,
-    backgroundColor: "#F0FDFA",
+  credIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  credRole: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
+  },
+  credText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
+  credHint: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    marginTop: 8,
+    fontStyle: "italic",
   },
   pressed: {
     opacity: 0.85,
-  },
-  demoCardTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  demoRoleBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  demoRoleText: {
-    fontSize: 10,
-    fontWeight: "800",
-    textTransform: "uppercase",
-  },
-  demoName: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  demoSub: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    marginTop: 1,
   },
   formCard: {
     backgroundColor: theme.colors.surfaceSecondary,
