@@ -12,8 +12,8 @@ export const theme = {
     surfaceInverse: "#0F172A",
     
     textPrimary: "#0F172A",   // Dark slate text
-    textSecondary: "#475569", // Medium slate
-    textMuted: "#94A3B8",     // Light slate
+    textSecondary: "#475569", // Medium slate — ~7:1 on surface
+    textMuted: "#64748B",     // Muted slate — ~4.9:1 on surface, readable in glare
     textInverse: "#F8FAFC",
     
     success: "#10B981",       // Completed / Healthy

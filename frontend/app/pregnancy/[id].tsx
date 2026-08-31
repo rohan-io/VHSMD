@@ -16,6 +16,9 @@ import { Header } from "@/src/components/Header";
 import { StatusBadge } from "@/src/components/StatusBadge";
 import { TrimesterTimeline } from "@/src/components/TrimesterTimeline";
 import { useToast } from "@/src/components/Toast";
+import { LoadError } from "@/src/components/LoadError";
+import { useArmConfirm } from "@/src/hooks/use-arm-confirm";
+import { isTrulyDelivered } from "@/src/utils/pregnancy";
 import { getPregnancy, completeMaternalImm } from "@/src/api/mch";
 import { ANCVisit, MaternalImmunization, PregnancyRecord, ChildRecord } from "@/src/types";
 
@@ -31,11 +34,14 @@ export default function PregnancyDetailScreen() {
   const [imms, setImms] = useState<MaternalImmunization[]>([]);
   const [children, setChildren] = useState<ChildRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [tab, setTab] = useState<Tab>("visits");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const { armedId, confirm } = useArmConfirm();
 
   const load = useCallback(async () => {
     if (!id) return;
+    setLoadFailed(false);
     try {
       const res = await getPregnancy(id);
       setPregnancy(res.pregnancy);
@@ -43,7 +49,7 @@ export default function PregnancyDetailScreen() {
       setImms(res.immunizations);
       setChildren(res.children);
     } catch (e: any) {
-      showToast(e.message || "Could not load pregnancy details.", "error");
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -80,12 +86,21 @@ export default function PregnancyDetailScreen() {
     );
   }
 
+  if (loadFailed) {
+    return (
+      <View style={styles.root}>
+        <Header title="Pregnancy Record" showBack showOfflineToggle={false} />
+        <LoadError onRetry={() => { setLoading(true); load(); }} testID="pregnancy-detail-error" />
+      </View>
+    );
+  }
+
   if (!pregnancy) {
     return (
       <View style={styles.root}>
         <Header title="Pregnancy Record" showBack showOfflineToggle={false} />
         <View style={styles.centerFill}>
-          <Text style={styles.emptyText}>Record not found.</Text>
+          <Text style={styles.emptyText}>This record could not be found. It may have been removed.</Text>
         </View>
       </View>
     );
@@ -104,8 +119,8 @@ export default function PregnancyDetailScreen() {
               <Text style={styles.avatarText}>{p.full_name?.charAt(0)}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{p.full_name}</Text>
-              <Text style={styles.sub}>W/o {p.husband_name} • Age {p.age} • {p.blood_group}</Text>
+              <Text style={styles.name} numberOfLines={1}>{p.full_name}</Text>
+              <Text style={styles.sub} numberOfLines={1}>W/o {p.husband_name} • Age {p.age} • {p.blood_group}</Text>
               <Text style={styles.sub}>{p.beneficiary_id}</Text>
             </View>
           </View>
@@ -129,7 +144,6 @@ export default function PregnancyDetailScreen() {
           gestationalWeeks={p.gestational_weeks}
           gestationalDays={p.gestational_days}
           edd={p.edd}
-          isHighRisk={p.is_high_risk}
         />
 
         {/* Action buttons */}
@@ -142,13 +156,13 @@ export default function PregnancyDetailScreen() {
             <Ionicons name="clipboard" size={16} color="#FFF" />
             <Text style={styles.primaryActionText}>Record ANC Visit</Text>
           </Pressable>
-          {p.status !== "delivered" && (
+          {!isTrulyDelivered(p) && (
             <Pressable
               testID="register-child-btn"
               onPress={() => router.push(`/child/register?motherId=${p.id}` as any)}
               style={styles.secondaryAction}
             >
-              <Ionicons name="happy" size={16} color={theme.colors.brandDark} />
+              <Ionicons name="person-add" size={16} color={theme.colors.brandDark} />
               <Text style={styles.secondaryActionText}>Register Child</Text>
             </Pressable>
           )}
@@ -181,7 +195,12 @@ export default function PregnancyDetailScreen() {
                     <View style={styles.vitalItem}><Text style={styles.vitalLabel}>Hb</Text><Text style={styles.vitalVal}>{v.hemoglobin} g/dL</Text></View>
                     <View style={styles.vitalItem}><Text style={styles.vitalLabel}>FHR</Text><Text style={styles.vitalVal}>{v.fetal_heart_rate}</Text></View>
                   </View>
-                  {v.advice ? <Text style={styles.advice}>💡 {v.advice}</Text> : null}
+                  {v.advice ? (
+                    <View style={styles.adviceRow}>
+                      <Ionicons name="chatbubble-ellipses-outline" size={13} color={theme.colors.textMuted} />
+                      <Text style={styles.advice}>{v.advice}</Text>
+                    </View>
+                  ) : null}
                 </View>
               ))
             )}
@@ -190,7 +209,7 @@ export default function PregnancyDetailScreen() {
 
         {tab === "vaccines" && (
           <View>
-            <Text style={styles.demoNote}>DEMO SCHEDULE — Replace with approved government schedule before production.</Text>
+            <Text style={styles.demoNote}>Sample schedule shown. Confirm against the approved national schedule before clinical use.</Text>
             {imms.map((im) => (
               <View key={im.id} style={styles.recordCard} testID={`mat-imm-${im.id}`}>
                 <View style={styles.recordHeader}>
@@ -202,22 +221,25 @@ export default function PregnancyDetailScreen() {
                 {im.status !== "Completed" && im.status !== "Upcoming" && (
                   <Pressable
                     testID={`complete-mat-imm-${im.id}`}
-                    onPress={() => markImm(im.id)}
+                    onPress={() => { if (confirm(im.id)) markImm(im.id); }}
                     disabled={busyId === im.id}
-                    style={styles.markBtn}
+                    style={[styles.markBtn, armedId === im.id && styles.markBtnArmed]}
                   >
                     {busyId === im.id ? (
                       <ActivityIndicator size="small" color="#FFF" />
                     ) : (
                       <>
-                        <Ionicons name="checkmark-circle" size={15} color="#FFF" />
-                        <Text style={styles.markBtnText}>Mark Administered</Text>
+                        <Ionicons name={armedId === im.id ? "checkmark-done-circle" : "checkmark-circle"} size={15} color="#FFF" />
+                        <Text style={styles.markBtnText}>{armedId === im.id ? "Tap to confirm" : "Mark Administered"}</Text>
                       </>
                     )}
                   </Pressable>
                 )}
                 {im.status === "Completed" && im.administration_date ? (
-                  <Text style={styles.givenText}>✓ Given on {im.administration_date} • Batch {im.batch_number || "—"}</Text>
+                  <View style={styles.givenRow}>
+                    <Ionicons name="checkmark-circle" size={13} color="#065F46" />
+                    <Text style={styles.givenText}>Given on {im.administration_date} • Batch {im.batch_number || "—"}</Text>
+                  </View>
                 ) : null}
               </View>
             ))}
@@ -252,7 +274,7 @@ export default function PregnancyDetailScreen() {
             <Text style={styles.sectionTitle}>Linked Children</Text>
             {children.map((c) => (
               <Pressable key={c.id} testID={`linked-child-${c.id}`} onPress={() => router.push(`/child/${c.id}` as any)} style={styles.childLink}>
-                <Ionicons name="happy" size={18} color={theme.colors.info} />
+                <Ionicons name="people-outline" size={18} color={theme.colors.info} />
                 <Text style={styles.childLinkText}>{c.child_name} • {c.age_label}</Text>
                 <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
               </Pressable>
@@ -277,33 +299,36 @@ const styles = StyleSheet.create({
   sub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
   bannerMeta: { flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap" },
   metaChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: theme.colors.brandLight, paddingHorizontal: 8, paddingVertical: 5, borderRadius: theme.radius.sm },
-  metaChipText: { fontSize: 11, fontWeight: "700", color: theme.colors.brandDark },
-  riskBanner: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: theme.colors.errorLight, borderRadius: theme.radius.sm, padding: 10, marginTop: 12 },
-  riskBannerText: { flex: 1, fontSize: 11, fontWeight: "700", color: "#991B1B" },
+  metaChipText: { fontSize: 12, fontWeight: "700", color: theme.colors.brandDark },
+  riskBanner: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: theme.colors.errorLight, borderRadius: theme.radius.sm, padding: 12, marginTop: 12 },
+  riskBannerText: { flex: 1, fontSize: 13, fontWeight: "700", color: "#991B1B" },
   actionRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
   primaryAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: theme.colors.brand, borderRadius: theme.radius.md, paddingVertical: 12 },
   primaryActionText: { color: "#FFF", fontSize: 13, fontWeight: "700" },
   secondaryAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: theme.colors.brandLight, borderRadius: theme.radius.md, paddingVertical: 12 },
   secondaryActionText: { color: theme.colors.brandDark, fontSize: 13, fontWeight: "700" },
   tabBar: { flexDirection: "row", backgroundColor: theme.colors.surfaceTertiary, borderRadius: theme.radius.md, padding: 4, marginBottom: 14 },
-  tabBtn: { flex: 1, paddingVertical: 9, borderRadius: theme.radius.sm, alignItems: "center" },
+  tabBtn: { flex: 1, paddingVertical: 12, borderRadius: theme.radius.sm, alignItems: "center" },
   tabBtnActive: { backgroundColor: theme.colors.surfaceSecondary, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
   tabText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary },
   tabTextActive: { color: theme.colors.brand },
   recordCard: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border },
   recordHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
   recordTitle: { flex: 1, fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
-  recordSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 3 },
-  recordDesc: { fontSize: 11, color: theme.colors.textMuted, marginTop: 4 },
+  recordSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 3 },
+  recordDesc: { fontSize: 12, color: theme.colors.textMuted, marginTop: 4 },
   vitalGrid: { flexDirection: "row", justifyContent: "space-between", marginTop: 10, backgroundColor: theme.colors.surfaceTertiary, borderRadius: theme.radius.sm, padding: 10 },
   vitalItem: { alignItems: "center" },
-  vitalLabel: { fontSize: 10, color: theme.colors.textMuted, fontWeight: "700" },
-  vitalVal: { fontSize: 13, color: theme.colors.textPrimary, fontWeight: "800", marginTop: 2 },
-  advice: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 8, lineHeight: 16 },
-  demoNote: { fontSize: 10, color: theme.colors.textMuted, fontStyle: "italic", marginBottom: 10 },
-  markBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: theme.colors.success, borderRadius: theme.radius.sm, paddingVertical: 9, marginTop: 10 },
-  markBtnText: { color: "#FFF", fontSize: 12, fontWeight: "700" },
-  givenText: { fontSize: 11, color: "#065F46", fontWeight: "700", marginTop: 8 },
+  vitalLabel: { fontSize: 12, color: theme.colors.textMuted, fontWeight: "700" },
+  vitalVal: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: "800", marginTop: 2 },
+  adviceRow: { flexDirection: "row", gap: 6, marginTop: 8, alignItems: "flex-start" },
+  advice: { flex: 1, fontSize: 12, color: theme.colors.textSecondary, lineHeight: 17 },
+  demoNote: { fontSize: 12, color: theme.colors.textMuted, fontStyle: "italic", marginBottom: 10 },
+  markBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: theme.colors.success, borderRadius: theme.radius.sm, paddingVertical: 12, marginTop: 10 },
+  markBtnArmed: { backgroundColor: theme.colors.warning },
+  markBtnText: { color: "#FFF", fontSize: 13, fontWeight: "700" },
+  givenRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
+  givenText: { flex: 1, fontSize: 12, color: "#065F46", fontWeight: "700" },
   infoRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: theme.colors.divider, gap: 12 },
   infoLabel: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: "600" },
   infoVal: { fontSize: 12, color: theme.colors.textPrimary, fontWeight: "700", flex: 1, textAlign: "right" },

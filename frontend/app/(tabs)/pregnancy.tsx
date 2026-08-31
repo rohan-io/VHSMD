@@ -16,8 +16,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
 import { StatusBadge } from "@/src/components/StatusBadge";
+import { LoadError } from "@/src/components/LoadError";
 import { listPregnancies } from "@/src/api/mch";
 import { PregnancyRecord } from "@/src/types";
+import { pregnancyStatusLabel } from "@/src/utils/pregnancy";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -33,11 +35,13 @@ export default function PregnancyListScreen() {
   const [items, setItems] = useState<PregnancyRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
   const load = useCallback(async (searchVal: string, filterVal: string) => {
     setLoading(true);
+    setError(false);
     try {
       const params: any = {};
       if (searchVal.trim()) params.search = searchVal.trim();
@@ -51,6 +55,7 @@ export default function PregnancyListScreen() {
       setTotal(res.total);
     } catch (e) {
       setItems([]);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -75,8 +80,8 @@ export default function PregnancyListScreen() {
           <Text style={styles.avatarText}>{item.full_name?.charAt(0)}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{item.full_name}</Text>
-          <Text style={styles.sub}>W/o {item.husband_name || "—"} • Age {item.age}</Text>
+          <Text style={styles.name} numberOfLines={1}>{item.full_name}</Text>
+          <Text style={styles.sub} numberOfLines={1}>W/o {item.husband_name || "—"} • Age {item.age}</Text>
         </View>
         {item.is_high_risk ? (
           <View style={styles.riskTag}>
@@ -100,7 +105,7 @@ export default function PregnancyListScreen() {
         </View>
       </View>
       <View style={styles.cardBottom}>
-        <StatusBadge status={item.status === "delivered" ? "Delivered" : `Trimester ${item.trimester}`} />
+        <StatusBadge status={pregnancyStatusLabel(item)} />
         <Text style={styles.benId}>{item.beneficiary_id}</Text>
       </View>
     </Pressable>
@@ -155,6 +160,8 @@ export default function PregnancyListScreen() {
         <View style={styles.centerFill}>
           <ActivityIndicator size="large" color={theme.colors.brand} />
         </View>
+      ) : error ? (
+        <LoadError onRetry={() => load(search, filter)} testID="pregnancy-load-error" />
       ) : (
         <FlatList
           data={items}
@@ -166,10 +173,32 @@ export default function PregnancyListScreen() {
             <Text style={styles.countText}>{total} beneficiaries found</Text>
           }
           ListEmptyComponent={
-            <View style={styles.centerFill}>
-              <Ionicons name="woman-outline" size={40} color={theme.colors.textMuted} />
-              <Text style={styles.emptyText}>No pregnancy records match your criteria.</Text>
-            </View>
+            search.trim() || filter !== "all" ? (
+              <View style={styles.centerFill}>
+                <Ionicons name="search-outline" size={40} color={theme.colors.textMuted} />
+                <Text style={styles.emptyText}>No beneficiaries match this search or filter.</Text>
+                <Pressable
+                  testID="pregnancy-empty-clear"
+                  onPress={() => { setSearch(""); setFilter("all"); load("", "all"); }}
+                  style={styles.emptyBtn}
+                >
+                  <Text style={styles.emptyBtnText}>Clear search & filters</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.centerFill}>
+                <Ionicons name="clipboard-outline" size={40} color={theme.colors.textMuted} />
+                <Text style={styles.emptyText}>No pregnancies registered yet.</Text>
+                <Pressable
+                  testID="pregnancy-empty-register"
+                  onPress={() => router.push("/pregnancy/register")}
+                  style={styles.emptyBtn}
+                >
+                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                  <Text style={styles.emptyBtnText}>Register a pregnancy</Text>
+                </Pressable>
+              </View>
+            )
           }
         />
       )}
@@ -207,10 +236,10 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 14, color: theme.colors.textPrimary },
   chipRow: { gap: 8, paddingHorizontal: 16, paddingTop: 12 },
   chip: {
-    height: 36,
+    height: 44,
     flexShrink: 0,
     justifyContent: "center",
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.surfaceTertiary,
     borderWidth: 1,
@@ -219,8 +248,10 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: theme.colors.brand, borderColor: theme.colors.brand },
   chipText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary },
   chipTextActive: { color: "#FFFFFF" },
-  centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 8, minHeight: 200 },
+  centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 10, minHeight: 200 },
   emptyText: { fontSize: 13, color: theme.colors.textSecondary, textAlign: "center" },
+  emptyBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, backgroundColor: theme.colors.brand, borderRadius: theme.radius.md, paddingHorizontal: 16, paddingVertical: 10 },
+  emptyBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
   listContent: { padding: 16, paddingBottom: 100 },
   countText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary, marginBottom: 10 },
   card: {
@@ -236,13 +267,13 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 17, fontWeight: "800", color: theme.colors.brandDark },
   name: { fontSize: 15, fontWeight: "700", color: theme.colors.textPrimary },
   sub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
-  riskTag: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: theme.colors.errorLight, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4 },
-  riskTagText: { fontSize: 9, fontWeight: "800", color: "#991B1B" },
+  riskTag: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: theme.colors.errorLight, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 4 },
+  riskTagText: { fontSize: 12, fontWeight: "800", color: "#991B1B" },
   cardMeta: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 10 },
-  metaItem: { flexDirection: "row", alignItems: "center", gap: 3 },
-  metaText: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: "600" },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  metaText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: "600" },
   cardBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
-  benId: { fontSize: 10, color: theme.colors.textMuted, fontWeight: "700" },
+  benId: { fontSize: 11, color: theme.colors.textMuted, fontWeight: "700" },
   fab: {
     position: "absolute",
     right: 20,

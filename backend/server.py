@@ -25,15 +25,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("mch_backend")
 
-# Database configuration
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-DB_NAME = os.environ.get('DB_NAME', 'health_app')
+# Database configuration - required, no defaults (fail fast if .env is missing/misconfigured)
+MONGO_URL = os.environ['MONGO_URL']
+DB_NAME = os.environ['DB_NAME']
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
 # JWT & Auth constants
-JWT_SECRET = os.environ.get('JWT_SECRET', 'mch_government_health_secret_key_2026_super_secure_token')
+JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_MINUTES = 60 * 24  # 24 hours for field workers
 

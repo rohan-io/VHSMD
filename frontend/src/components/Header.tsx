@@ -33,9 +33,9 @@ export const Header: React.FC<HeaderProps> = ({
           <View style={styles.emblemBadge}>
             <Ionicons name="medical" size={13} color="#FFFFFF" />
           </View>
-          <Text style={styles.govText}>GOVERNMENT HEALTH CONNECT • MCHIS</Text>
+          <Text style={styles.govText}>Health Connect · MCHIS</Text>
         </View>
-        <Text style={styles.versionBadge}>v2.6.4 (DEMO)</Text>
+        <Text style={styles.versionBadge}>v2.6.4</Text>
       </View>
 
       {/* Main Header Content */}
@@ -66,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
               </Text>
             ) : user ? (
               <Text style={styles.subtitleText} numberOfLines={1}>
-                {user.name} ({user.role === "Administrator" ? "Admin" : "Field Worker"})
+                {user.name}
               </Text>
             ) : null}
           </View>
@@ -104,6 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
             testID="header-sync-queue-btn"
             onPress={() => router.push("/sync")}
             style={styles.iconButton}
+            hitSlop={6}
           >
             <Ionicons name="sync-circle-outline" size={22} color={theme.colors.brandDark} />
             {pendingCount > 0 && (
@@ -118,6 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
             testID="header-notifications-btn"
             onPress={() => router.push("/notifications")}
             style={styles.iconButton}
+            hitSlop={6}
           >
             <Ionicons name="notifications-outline" size={22} color={theme.colors.brandDark} />
             <View style={styles.notifDot} />
@@ -134,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Ionicons name="warning-outline" size={14} color="#B91C1C" />
           <Text style={styles.offlineRibbonText}>
-            Simulated Offline Mode Active • {pendingCount} records queued locally • Tap to Sync
+            Offline mode • {pendingCount} records queued on this device • Tap to sync
           </Text>
         </Pressable>
       )}
@@ -171,13 +173,12 @@ const styles = StyleSheet.create({
   },
   govText: {
     color: "#E2E8F0",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: "600",
   },
   versionBadge: {
     color: "#94A3B8",
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: "600",
   },
   mainRow: {
@@ -229,7 +230,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 7,
     borderRadius: 12,
     borderWidth: 1,
   },
@@ -246,9 +247,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: theme.colors.surfaceTertiary,
     alignItems: "center",
     justifyContent: "center",
@@ -259,16 +260,16 @@ const styles = StyleSheet.create({
     top: -2,
     right: -2,
     backgroundColor: theme.colors.error,
-    borderRadius: 9,
-    minWidth: 16,
-    height: 16,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
   },
   badgeText: {
     color: "#FFFFFF",
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: "800",
   },
   notifDot: {
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   offlineRibbonText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
     color: "#B91C1C",
   },

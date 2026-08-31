@@ -8,7 +8,6 @@ interface TrimesterTimelineProps {
   gestationalWeeks: number;
   gestationalDays?: number;
   edd: string;
-  isHighRisk?: boolean;
 }
 
 export const TrimesterTimeline: React.FC<TrimesterTimelineProps> = ({
@@ -16,33 +15,32 @@ export const TrimesterTimeline: React.FC<TrimesterTimelineProps> = ({
   gestationalWeeks,
   gestationalDays = 0,
   edd,
-  isHighRisk = false,
 }) => {
   const steps = [
     {
       num: 1,
-      label: "1st Trimester",
-      weeks: "Weeks 1–12",
+      label: "1st tri",
+      weeks: "Wk 1–12",
       desc: "Registration & ANC 1",
       icon: "leaf-outline" as const,
     },
     {
       num: 2,
-      label: "2nd Trimester",
-      weeks: "Weeks 13–27",
+      label: "2nd tri",
+      weeks: "Wk 13–27",
       desc: "ANC 2 & TT Vaccines",
-      icon: "fitness-outline" as const,
+      icon: "pulse-outline" as const,
     },
     {
       num: 3,
-      label: "3rd Trimester",
-      weeks: "Weeks 28–40",
+      label: "3rd tri",
+      weeks: "Wk 28–40",
       desc: "ANC 3/4 & Birth Plan",
       icon: "heart-circle-outline" as const,
     },
     {
       num: 4,
-      label: "Delivery & Child",
+      label: "Delivery",
       weeks: "EDD",
       desc: "Institutional Birth",
       icon: "happy-outline" as const,
@@ -108,7 +106,7 @@ export const TrimesterTimeline: React.FC<TrimesterTimelineProps> = ({
                 >
                   {step.label}
                 </Text>
-                <Text style={styles.nodeWeeks}>{step.weeks}</Text>
+                <Text style={styles.nodeWeeks} numberOfLines={1}>{step.weeks}</Text>
               </View>
 
               {/* Connecting Line */}
@@ -125,13 +123,10 @@ export const TrimesterTimeline: React.FC<TrimesterTimelineProps> = ({
         })}
       </View>
 
-      {/* Clinical Guidance Milestone Box */}
-      <View style={[styles.guidanceBox, isHighRisk && styles.guidanceBoxHighRisk]}>
-        <Ionicons
-          name={isHighRisk ? "alert-circle" : "information-circle"}
-          size={18}
-          color={isHighRisk ? theme.colors.error : theme.colors.brand}
-        />
+      {/* Clinical Guidance Milestone Box — protocol reference, always neutral.
+          Risk is signalled by the HIGH RISK banner above, not by recolouring this. */}
+      <View style={styles.guidanceBox}>
+        <Ionicons name="information-circle" size={18} color={theme.colors.brand} />
         <View style={styles.guidanceTextCol}>
           <Text style={styles.guidanceTitle}>
             {currentTrimester === 1
@@ -188,7 +183,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
   },
   eddText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
     color: theme.colors.brandDark,
   },
@@ -224,9 +219,9 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.borderStrong,
   },
   nodeLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "600",
-    color: theme.colors.textMuted,
+    color: theme.colors.textSecondary,
     textAlign: "center",
   },
   nodeLabelCurrent: {
@@ -238,9 +233,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   nodeWeeks: {
-    fontSize: 9,
+    fontSize: 11,
     color: theme.colors.textMuted,
-    marginTop: 1,
+    marginTop: 2,
     textAlign: "center",
   },
   connectorLine: {
@@ -266,17 +261,13 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: theme.colors.brand,
   },
-  guidanceBoxHighRisk: {
-    backgroundColor: theme.colors.errorLight,
-    borderLeftColor: theme.colors.error,
-  },
   guidanceTextCol: {
     flex: 1,
   },
   guidanceTitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: theme.colors.textPrimary,
-    lineHeight: 16,
+    lineHeight: 17,
     fontWeight: "600",
   },
 });

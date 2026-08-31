@@ -30,6 +30,10 @@ export async function removeAuthToken(): Promise<boolean> {
   return await storage.secureRemove(TOKEN_KEY);
 }
 
+// Field connections stall silently. Cap every request so a dead or crawling
+// server surfaces as an error the UI can act on, instead of an endless spinner.
+const REQUEST_TIMEOUT_MS = 15000;
+
 export async function apiRequest<T = any>(
   path: string,
   options: {
@@ -37,6 +41,7 @@ export async function apiRequest<T = any>(
     body?: any;
     headers?: Record<string, string>;
     isFormData?: boolean;
+    timeoutMs?: number;
   } = {}
 ): Promise<T> {
   const token = await getAuthToken();
@@ -55,9 +60,16 @@ export async function apiRequest<T = any>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    options.timeoutMs ?? REQUEST_TIMEOUT_MS
+  );
+
   const fetchOptions: RequestInit = {
     method: options.method || "GET",
     headers,
+    signal: controller.signal,
   };
 
   if (options.body) {
@@ -95,9 +107,19 @@ export async function apiRequest<T = any>(
     if (error instanceof ApiError) {
       throw error;
     }
+    if (error?.name === "AbortError") {
+      throw new ApiError(
+        "The server took too long to respond. Check your connection and try again.",
+        0
+      );
+    }
+    // Network-level failure (offline, DNS, server down). Raw messages like
+    // "Failed to fetch" / "Load failed" are useless to a field worker.
     throw new ApiError(
-      error.message || "Network request failed. Check server connection.",
+      "Can't reach the server. Check your connection and try again.",
       0
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

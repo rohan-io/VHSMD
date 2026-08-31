@@ -18,7 +18,7 @@ export default function TabsLayout() {
           ...(Platform.OS === "web" ? { height: 64 } : {}),
         },
         tabBarItemStyle: { alignSelf: "center" },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "700" },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: "700" },
       }}
     >
       <Tabs.Screen

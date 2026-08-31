@@ -73,7 +73,7 @@ export default function LoginScreen() {
         <View style={styles.emblemBadge}>
           <Ionicons name="medical" size={14} color="#FFFFFF" />
         </View>
-        <Text style={styles.topGovText}>NATIONAL HEALTH MISSION • STATE MCHIS PORTAL</Text>
+        <Text style={styles.topGovText}>National Health Mission · State MCHIS Portal</Text>
       </View>
 
       <KeyboardAwareScrollView
@@ -101,7 +101,7 @@ export default function LoginScreen() {
         {/* Role selection (shown until a role is chosen) */}
         {!selectedRole && (
           <View style={styles.credSection}>
-            <Text style={styles.sectionLabel}>SELECT YOUR ROLE TO SIGN IN:</Text>
+            <Text style={styles.sectionLabel}>Select your role to continue</Text>
             <View style={styles.credGrid}>
               <Pressable
                 testID="role-health-worker"
@@ -123,8 +123,8 @@ export default function LoginScreen() {
                 onPress={() => selectRole("Administrator")}
                 style={({ pressed }) => [styles.credCard, pressed && styles.pressed]}
               >
-                <View style={[styles.credIcon, { backgroundColor: "#FEF3C7" }]}>
-                  <Ionicons name="shield-checkmark" size={18} color="#92400E" />
+                <View style={[styles.credIcon, { backgroundColor: theme.colors.surfaceTertiary }]}>
+                  <Ionicons name="shield-checkmark" size={18} color={theme.colors.textSecondary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.credRole}>Administrator Login</Text>
@@ -261,7 +261,7 @@ export default function LoginScreen() {
         <View style={styles.securityNotice}>
           <Ionicons name="lock-closed" size={14} color={theme.colors.textMuted} />
           <Text style={styles.securityText}>
-            256-bit Encrypted Session • Offline Sync Enabled • v2.6.4 Demo Build
+            Encrypted session · Works offline · v2.6.4
           </Text>
         </View>
       </KeyboardAwareScrollView>
@@ -319,9 +319,8 @@ const styles = StyleSheet.create({
   },
   topGovText: {
     color: "#E2E8F0",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: "600",
   },
   scrollContent: {
     padding: 16,
@@ -358,26 +357,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     backgroundColor: theme.colors.brandLight,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: theme.radius.pill,
     marginTop: 10,
   },
   disclaimerText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: "600",
     color: theme.colors.brandDark,
+    flexShrink: 1,
   },
   credSection: {
     marginTop: 12,
     marginBottom: 16,
   },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: theme.colors.textSecondary,
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
   },
   credGrid: {
     gap: 8,
@@ -410,7 +409,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   credHint: {
-    fontSize: 11,
+    fontSize: 12,
     color: theme.colors.textMuted,
     marginTop: 8,
     fontStyle: "italic",
@@ -547,7 +546,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   securityText: {
-    fontSize: 10,
+    fontSize: 12,
     color: theme.colors.textMuted,
   },
   modalOverlay: {

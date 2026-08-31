@@ -38,3 +38,7 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# visual audit (local only)
+.audit-screenshots/
+.playwright-mcp/

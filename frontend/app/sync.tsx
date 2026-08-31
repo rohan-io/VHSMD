@@ -126,7 +126,7 @@ export default function SyncScreen() {
 
         <View style={styles.flowNote}>
           <Text style={styles.flowTitle}>How offline sync works</Text>
-          <Text style={styles.flowText}>Local Queue → Internet Available → REST API → Central Database. Records are de-duplicated on the server to prevent double entries.</Text>
+          <Text style={styles.flowText}>Records you save without a connection are held on this device, then sent to the district server once you're back online. Duplicates are removed automatically.</Text>
         </View>
       </ScrollView>
     </View>
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   statusSub: { fontSize: 12, color: theme.colors.textSecondary },
   toggleCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, borderWidth: 1, borderColor: theme.colors.border, marginTop: 12 },
   toggleLabel: { fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
-  toggleSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 },
+  toggleSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
   syncBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: theme.colors.brand, borderRadius: theme.radius.md, height: 52, marginTop: 12 },
   syncBtnText: { color: "#FFF", fontSize: 15, fontWeight: "700" },
   queueHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 20 },
@@ -154,11 +154,11 @@ const styles = StyleSheet.create({
   queueItem: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, marginTop: 10, borderWidth: 1, borderColor: theme.colors.border },
   queueIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.brandLight, alignItems: "center", justifyContent: "center" },
   queueTitle: { fontSize: 13, fontWeight: "700", color: theme.colors.textPrimary },
-  queueSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1 },
-  queueTime: { fontSize: 10, color: theme.colors.textMuted, marginTop: 2 },
+  queueSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
+  queueTime: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   waitingPill: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: theme.colors.warningLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-  waitingText: { fontSize: 10, fontWeight: "800", color: "#B45309" },
+  waitingText: { fontSize: 12, fontWeight: "800", color: "#B45309" },
   flowNote: { marginTop: 20, backgroundColor: theme.colors.surfaceTertiary, borderRadius: theme.radius.md, padding: 14, borderLeftWidth: 3, borderLeftColor: theme.colors.brand },
-  flowTitle: { fontSize: 12, fontWeight: "800", color: theme.colors.textPrimary },
-  flowText: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 4, lineHeight: 16 },
+  flowTitle: { fontSize: 13, fontWeight: "800", color: theme.colors.textPrimary },
+  flowText: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 4, lineHeight: 17 },
 });

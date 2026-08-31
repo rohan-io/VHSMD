@@ -47,19 +47,9 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     bg = theme.colors.errorLight;
     fg = "#991B1B";
     border = "#FECACA";
-  } else if (norm.includes("trimester 1") || norm.includes("1st")) {
-    bg = "#E0F2FE";
-    fg = "#0369A1";
-    border = "#BAE6FD";
-  } else if (norm.includes("trimester 2") || norm.includes("2nd")) {
-    bg = "#EDE9FE";
-    fg = "#6D28D9";
-    border = "#DDD6FE";
-  } else if (norm.includes("trimester 3") || norm.includes("3rd")) {
-    bg = "#FEF3C7";
-    fg = "#B45309";
-    border = "#FDE68A";
   }
+  // Trimester is ordinal stage info, not a status — the label carries it.
+  // Left neutral so colour stays reserved for done / due / risk.
 
   return (
     <View
@@ -107,9 +97,8 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   text: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.3,
   },
 });

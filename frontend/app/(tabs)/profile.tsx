@@ -101,8 +101,7 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Sign Out</Text>
         </Pressable>
 
-        <Text style={styles.footerText}>HEALTH CONNECT • v2.6.4 (DEMO)</Text>
-        <Text style={styles.footerSub}>DEMO ONLY — Change credentials before production.</Text>
+        <Text style={styles.footerText}>Health Connect · v2.6.4</Text>
       </ScrollView>
     </View>
   );
@@ -116,7 +115,7 @@ const styles = StyleSheet.create({
   bigAvatarText: { fontSize: 30, fontWeight: "800", color: "#FFFFFF" },
   profileName: { fontSize: 18, fontWeight: "800", color: theme.colors.textPrimary },
   roleBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: theme.colors.brandLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.radius.pill, marginTop: 6 },
-  roleText: { fontSize: 11, fontWeight: "800", color: theme.colors.brandDark },
+  roleText: { fontSize: 12, fontWeight: "800", color: theme.colors.brandDark },
   profileMetaRow: { flexDirection: "row", gap: 16, marginTop: 12, flexWrap: "wrap", justifyContent: "center" },
   profileMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   profileMetaText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: "600" },
@@ -124,13 +123,12 @@ const styles = StyleSheet.create({
   toggleCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, borderWidth: 1, borderColor: theme.colors.border },
   toggleIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   toggleLabel: { fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
-  toggleSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 },
+  toggleSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
   menuRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.border },
   menuIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surfaceTertiary, alignItems: "center", justifyContent: "center" },
   menuLabel: { fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
-  menuSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 },
+  menuSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
   logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: theme.colors.errorLight, borderRadius: theme.radius.md, paddingVertical: 14, marginTop: 20 },
   logoutText: { fontSize: 14, fontWeight: "800", color: theme.colors.error },
   footerText: { textAlign: "center", fontSize: 11, color: theme.colors.textMuted, fontWeight: "700", marginTop: 20 },
-  footerSub: { textAlign: "center", fontSize: 10, color: theme.colors.textMuted, marginTop: 2, fontStyle: "italic" },
 });

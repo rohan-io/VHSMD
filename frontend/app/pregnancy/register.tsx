@@ -14,10 +14,16 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
+import { DateField } from "@/src/components/DateField";
 import { useToast } from "@/src/components/Toast";
 import { useAuth } from "@/src/context/AuthContext";
 import { useOfflineSync } from "@/src/context/OfflineSyncContext";
 import { createPregnancy } from "@/src/api/mch";
+import { validateDate, shiftISO, todayISO } from "@/src/utils/date";
+
+// A plausible LMP sits within the last ~43 weeks and never in the future.
+const LMP_MIN = shiftISO(-300);
+const LMP_MAX = todayISO();
 
 const BLOOD_GROUPS = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"];
 
@@ -30,8 +36,9 @@ interface FieldProps {
   testID: string;
   required?: boolean;
   multiline?: boolean;
+  maxLength?: number;
 }
-const Field: React.FC<FieldProps> = ({ label, value, onChangeText, placeholder, keyboardType, testID, required, multiline }) => (
+const Field: React.FC<FieldProps> = ({ label, value, onChangeText, placeholder, keyboardType, testID, required, multiline, maxLength }) => (
   <View style={styles.field}>
     <Text style={styles.label}>{label}{required ? <Text style={{ color: theme.colors.error }}> *</Text> : null}</Text>
     <TextInput
@@ -43,6 +50,7 @@ const Field: React.FC<FieldProps> = ({ label, value, onChangeText, placeholder, 
       placeholderTextColor={theme.colors.textMuted}
       keyboardType={keyboardType}
       multiline={multiline}
+      maxLength={maxLength ?? (multiline ? 300 : 80)}
     />
   </View>
 );
@@ -74,15 +82,23 @@ export default function RegisterPregnancyScreen() {
   });
   const [highRisk, setHighRisk] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [lmpError, setLmpError] = useState<string | null>(null);
 
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
+  const setLmp = (v: string) => {
+    setForm((f) => ({ ...f, lmp: v }));
+    if (lmpError) setLmpError(null);
+  };
+
   const validate = () => {
     if (!form.full_name.trim()) return "Full name is required.";
-    if (!form.age.trim() || isNaN(Number(form.age))) return "Valid age is required.";
-    if (!form.mobile_number.trim() || form.mobile_number.trim().length < 10) return "Valid 10-digit mobile is required.";
+    const age = Number(form.age);
+    if (!form.age.trim() || isNaN(age) || age < 10 || age > 60) return "Enter a valid age between 10 and 60.";
+    if (!/^\d{10}$/.test(form.mobile_number.trim())) return "Enter a valid 10-digit mobile number.";
     if (!form.village.trim()) return "Village is required.";
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.lmp.trim())) return "LMP must be in YYYY-MM-DD format.";
+    const lmpMsg = validateDate(form.lmp, { min: LMP_MIN, max: LMP_MAX, label: "LMP" });
+    if (lmpMsg) { setLmpError(lmpMsg); return lmpMsg; }
     return null;
   };
 
@@ -171,7 +187,17 @@ export default function RegisterPregnancyScreen() {
         <Field testID="reg-address" label="Address" value={form.address} onChangeText={set("address")} placeholder="House no, locality" />
 
         <Text style={styles.sectionTitle}>Pregnancy Information</Text>
-        <Field testID="reg-lmp" label="Last Menstrual Period (LMP)" value={form.lmp} onChangeText={set("lmp")} placeholder="YYYY-MM-DD" required />
+        <View style={styles.field}>
+          <Text style={styles.label}>Last Menstrual Period (LMP)<Text style={{ color: theme.colors.error }}> *</Text></Text>
+          <DateField
+            testID="reg-lmp"
+            value={form.lmp}
+            onChange={setLmp}
+            min={LMP_MIN}
+            max={LMP_MAX}
+            error={lmpError}
+          />
+        </View>
         <Text style={styles.hint}>EDD & trimester are auto-calculated from LMP.</Text>
         <View style={styles.rowTwo}>
           <View style={{ flex: 1 }}><Field testID="reg-gravida" label="Gravida" value={form.gravida} onChangeText={set("gravida")} keyboardType="number-pad" /></View>
@@ -229,9 +255,9 @@ const styles = StyleSheet.create({
   input: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 12, height: 46, fontSize: 14, color: theme.colors.textPrimary },
   inputMultiline: { height: 70, paddingTop: 10, textAlignVertical: "top" },
   rowTwo: { flexDirection: "row", gap: 10 },
-  hint: { fontSize: 11, color: theme.colors.textMuted, marginTop: -4, marginBottom: 8, fontStyle: "italic" },
+  hint: { fontSize: 12, color: theme.colors.textMuted, marginTop: -4, marginBottom: 8, fontStyle: "italic" },
   bgRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
-  bgChip: { width: 54, height: 40, borderRadius: theme.radius.sm, backgroundColor: theme.colors.surfaceSecondary, borderWidth: 1, borderColor: theme.colors.border, alignItems: "center", justifyContent: "center" },
+  bgChip: { width: 54, height: 44, borderRadius: theme.radius.sm, backgroundColor: theme.colors.surfaceSecondary, borderWidth: 1, borderColor: theme.colors.border, alignItems: "center", justifyContent: "center" },
   bgChipActive: { backgroundColor: theme.colors.brand, borderColor: theme.colors.brand },
   bgChipText: { fontSize: 13, fontWeight: "700", color: theme.colors.textSecondary },
   bgChipTextActive: { color: "#FFF" },

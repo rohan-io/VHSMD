@@ -14,10 +14,16 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
+import { DateField } from "@/src/components/DateField";
 import { useToast } from "@/src/components/Toast";
 import { useAuth } from "@/src/context/AuthContext";
 import { useOfflineSync } from "@/src/context/OfflineSyncContext";
 import { createANCVisit } from "@/src/api/mch";
+import { validateDate, todayISO, shiftISO } from "@/src/utils/date";
+
+// Follow-up visit: from today out to roughly one more pregnancy's length.
+const NEXT_VISIT_MIN = todayISO();
+const NEXT_VISIT_MAX = shiftISO(300);
 
 export default function ANCRecordScreen() {
   const insets = useSafeAreaInsets();
@@ -40,12 +46,21 @@ export default function ANCRecordScreen() {
     next_visit_date: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [nextVisitError, setNextVisitError] = useState<string | null>(null);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const setNextVisit = (v: string) => {
+    setForm((f) => ({ ...f, next_visit_date: v }));
+    if (nextVisitError) setNextVisitError(null);
+  };
 
   const handleSubmit = async () => {
     if (!form.weight || !form.bp_systolic || !form.bp_diastolic || !form.hemoglobin) {
       showToast("Weight, BP and Haemoglobin are required.", "error");
       return;
+    }
+    if (form.next_visit_date.trim()) {
+      const nvMsg = validateDate(form.next_visit_date, { min: NEXT_VISIT_MIN, max: NEXT_VISIT_MAX, label: "Next visit date" });
+      if (nvMsg) { setNextVisitError(nvMsg); showToast(nvMsg, "error"); return; }
     }
     const payload = {
       pregnancy_id: pregnancyId,
@@ -137,7 +152,17 @@ export default function ANCRecordScreen() {
         {F("Symptoms", "symptoms", "Fetal movements, swelling, etc.", undefined, true)}
         {F("Examination Notes", "examination_notes", "Clinical observations", undefined, true)}
         {F("Advice Given", "advice", "IFA tablets, diet, follow-up", undefined, true)}
-        {F("Next Visit Date", "next_visit_date", "YYYY-MM-DD")}
+        <View style={styles.field}>
+          <Text style={styles.label}>Next Visit Date</Text>
+          <DateField
+            testID="anc-next_visit_date"
+            value={form.next_visit_date}
+            onChange={setNextVisit}
+            min={NEXT_VISIT_MIN}
+            max={NEXT_VISIT_MAX}
+            error={nextVisitError}
+          />
+        </View>
       </KeyboardAwareScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
@@ -158,7 +183,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.colors.surface },
   scroll: { padding: 16, paddingBottom: 40 },
   infoBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: theme.colors.brandLight, borderRadius: theme.radius.md, padding: 12, marginBottom: 8 },
-  infoText: { flex: 1, fontSize: 11, color: theme.colors.brandDark, fontWeight: "600" },
+  infoText: { flex: 1, fontSize: 12, color: theme.colors.brandDark, fontWeight: "600" },
   sectionTitle: { fontSize: 14, fontWeight: "800", color: theme.colors.brand, marginTop: 14, marginBottom: 10 },
   field: { marginBottom: 12 },
   label: { fontSize: 12, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 6 },

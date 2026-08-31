@@ -15,6 +15,8 @@ import { theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
 import { StatusBadge } from "@/src/components/StatusBadge";
 import { useToast } from "@/src/components/Toast";
+import { LoadError } from "@/src/components/LoadError";
+import { useArmConfirm } from "@/src/hooks/use-arm-confirm";
 import { getChild, completeChildImm } from "@/src/api/mch";
 import { ChildImmunization, ChildRecord, PregnancyRecord } from "@/src/types";
 
@@ -28,18 +30,21 @@ export default function ChildDetailScreen() {
   const [imms, setImms] = useState<ChildImmunization[]>([]);
   const [mother, setMother] = useState<PregnancyRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [filter, setFilter] = useState("All");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const { armedId, confirm } = useArmConfirm();
 
   const load = useCallback(async () => {
     if (!id) return;
+    setLoadFailed(false);
     try {
       const res = await getChild(id);
       setChild(res.child);
       setImms(res.immunizations);
       setMother(res.mother);
     } catch (e: any) {
-      showToast(e.message || "Failed to load child record.", "error");
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -69,17 +74,28 @@ export default function ChildDetailScreen() {
       </View>
     );
   }
+  if (loadFailed) {
+    return (
+      <View style={styles.root}>
+        <Header title="Child Record" showBack showOfflineToggle={false} />
+        <LoadError onRetry={() => { setLoading(true); load(); }} testID="child-detail-error" />
+      </View>
+    );
+  }
+
   if (!child) {
     return (
       <View style={styles.root}>
         <Header title="Child Record" showBack showOfflineToggle={false} />
-        <View style={styles.centerFill}><Text style={styles.emptyText}>Record not found.</Text></View>
+        <View style={styles.centerFill}><Text style={styles.emptyText}>This record could not be found. It may have been removed.</Text></View>
       </View>
     );
   }
 
   const st = child.vaccine_stats;
   const filtered = filter === "All" ? imms : imms.filter((im) => im.status === filter);
+  // A near-full green bar reads as "on track" — don't imply that while doses are overdue.
+  const progressColor = (st?.overdue ?? 0) > 0 ? theme.colors.warning : theme.colors.success;
 
   return (
     <View style={styles.root}>
@@ -91,7 +107,7 @@ export default function ChildDetailScreen() {
               <Ionicons name={child.gender === "Female" ? "female" : "male"} size={22} color={child.gender === "Female" ? "#BE185D" : "#1D4ED8"} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{child.child_name}</Text>
+              <Text style={styles.name} numberOfLines={1}>{child.child_name}</Text>
               <Text style={styles.sub}>{child.age_label} • {child.gender}</Text>
               <Text style={styles.sub}>{child.child_id}</Text>
             </View>
@@ -108,9 +124,9 @@ export default function ChildDetailScreen() {
           <View style={styles.summaryCard}>
             <View style={styles.summaryHeader}>
               <Text style={styles.summaryTitle}>Immunisation Progress</Text>
-              <Text style={styles.summaryPct}>{st.progress_percent}%</Text>
+              <Text style={[styles.summaryPct, { color: progressColor }]}>{st.progress_percent}%</Text>
             </View>
-            <View style={styles.progressBar}><View style={[styles.progressFill, { width: `${st.progress_percent}%` }]} /></View>
+            <View style={styles.progressBar}><View style={[styles.progressFill, { width: `${st.progress_percent}%`, backgroundColor: progressColor }]} /></View>
             <View style={styles.summaryStats}>
               <View style={styles.statItem}><Text style={[styles.statNum, { color: theme.colors.success }]}>{st.completed}</Text><Text style={styles.statLabel}>Done</Text></View>
               <View style={styles.statItem}><Text style={[styles.statNum, { color: theme.colors.warning }]}>{st.due}</Text><Text style={styles.statLabel}>Due</Text></View>
@@ -120,7 +136,7 @@ export default function ChildDetailScreen() {
           </View>
         )}
 
-        <Text style={styles.demoNote}>DEMO SCHEDULE — Replace with approved government schedule before production.</Text>
+        <Text style={styles.demoNote}>Sample schedule shown. Confirm against the approved national schedule before clinical use.</Text>
 
         {/* Filter chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
@@ -145,17 +161,25 @@ export default function ChildDetailScreen() {
               <StatusBadge status={im.status} />
             </View>
             {im.status !== "Completed" && im.status !== "Upcoming" && (
-              <Pressable testID={`mark-child-imm-${im.id}`} onPress={() => markDone(im.id)} disabled={busyId === im.id} style={styles.markBtn}>
+              <Pressable
+                testID={`mark-child-imm-${im.id}`}
+                onPress={() => { if (confirm(im.id)) markDone(im.id); }}
+                disabled={busyId === im.id}
+                style={[styles.markBtn, armedId === im.id && styles.markBtnArmed]}
+              >
                 {busyId === im.id ? <ActivityIndicator size="small" color="#FFF" /> : (
                   <>
-                    <Ionicons name="checkmark-circle" size={15} color="#FFF" />
-                    <Text style={styles.markBtnText}>Mark Administered</Text>
+                    <Ionicons name={armedId === im.id ? "checkmark-done-circle" : "checkmark-circle"} size={15} color="#FFF" />
+                    <Text style={styles.markBtnText}>{armedId === im.id ? "Tap to confirm" : "Mark Administered"}</Text>
                   </>
                 )}
               </Pressable>
             )}
             {im.status === "Completed" && im.administered_date ? (
-              <Text style={styles.givenText}>✓ Given on {im.administered_date} • {im.route} • Batch {im.batch_no || "—"}</Text>
+              <View style={styles.givenRow}>
+                <Ionicons name="checkmark-circle" size={13} color="#065F46" />
+                <Text style={styles.givenText}>Given on {im.administered_date} • {im.route} • Batch {im.batch_no || "—"}</Text>
+              </View>
             ) : null}
           </View>
         ))}
@@ -177,7 +201,7 @@ const styles = StyleSheet.create({
   sub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
   bannerMeta: { flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap" },
   metaChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: theme.colors.brandLight, paddingHorizontal: 8, paddingVertical: 5, borderRadius: theme.radius.sm },
-  metaChipText: { fontSize: 11, fontWeight: "700", color: theme.colors.brandDark },
+  metaChipText: { fontSize: 12, fontWeight: "700", color: theme.colors.brandDark },
   summaryCard: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 12 },
   summaryHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   summaryTitle: { fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
@@ -187,20 +211,22 @@ const styles = StyleSheet.create({
   summaryStats: { flexDirection: "row", justifyContent: "space-between", marginTop: 12 },
   statItem: { alignItems: "center", flex: 1 },
   statNum: { fontSize: 18, fontWeight: "800" },
-  statLabel: { fontSize: 10, color: theme.colors.textMuted, fontWeight: "700", marginTop: 2 },
-  demoNote: { fontSize: 10, color: theme.colors.textMuted, fontStyle: "italic", marginBottom: 10 },
+  statLabel: { fontSize: 12, color: theme.colors.textMuted, fontWeight: "700", marginTop: 2 },
+  demoNote: { fontSize: 12, color: theme.colors.textMuted, fontStyle: "italic", marginBottom: 10 },
   chipRow: { gap: 8, paddingBottom: 12 },
-  chip: { height: 34, flexShrink: 0, justifyContent: "center", paddingHorizontal: 14, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surfaceTertiary, borderWidth: 1, borderColor: theme.colors.border },
+  chip: { height: 44, flexShrink: 0, justifyContent: "center", paddingHorizontal: 16, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surfaceTertiary, borderWidth: 1, borderColor: theme.colors.border },
   chipActive: { backgroundColor: theme.colors.brand, borderColor: theme.colors.brand },
   chipText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary },
   chipTextActive: { color: "#FFF" },
   vaxCard: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.border },
   vaxHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
-  vaxCode: { minWidth: 48, height: 30, borderRadius: theme.radius.sm, backgroundColor: theme.colors.surfaceInverse, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
-  vaxCodeText: { fontSize: 11, fontWeight: "800", color: "#FFF" },
-  vaxName: { fontSize: 13, fontWeight: "700", color: theme.colors.textPrimary },
-  vaxSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 },
-  markBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: theme.colors.success, borderRadius: theme.radius.sm, paddingVertical: 9, marginTop: 10 },
-  markBtnText: { color: "#FFF", fontSize: 12, fontWeight: "700" },
-  givenText: { fontSize: 11, color: "#065F46", fontWeight: "700", marginTop: 8 },
+  vaxCode: { minWidth: 48, height: 30, borderRadius: theme.radius.sm, backgroundColor: theme.colors.brandLight, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
+  vaxCodeText: { fontSize: 11, fontWeight: "800", color: theme.colors.brandDark },
+  vaxName: { fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
+  vaxSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  markBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: theme.colors.success, borderRadius: theme.radius.sm, paddingVertical: 12, marginTop: 10 },
+  markBtnArmed: { backgroundColor: theme.colors.warning },
+  markBtnText: { color: "#FFF", fontSize: 13, fontWeight: "700" },
+  givenRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
+  givenText: { flex: 1, fontSize: 12, color: "#065F46", fontWeight: "700" },
 });

@@ -36,12 +36,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     >
       <View style={styles.topRow}>
         <View style={[styles.iconBox, { backgroundColor: `${color}18` }]}>
-          <Ionicons name={icon} size={20} color={color} />
+          <Ionicons name={icon} size={18} color={color} />
         </View>
         <Text style={[styles.valueText, { color: color }]}>{value}</Text>
       </View>
 
-      <Text style={styles.titleText} numberOfLines={1}>
+      <Text style={styles.titleText} numberOfLines={2}>
         {title}
       </Text>
       {subtitle ? (
@@ -56,7 +56,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    minWidth: 140,
+    minWidth: 100,
     borderRadius: theme.radius.md,
     padding: 14,
     borderWidth: 1,
@@ -70,28 +70,29 @@ const styles = StyleSheet.create({
   topRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 6,
   },
   iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
   valueText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "800",
     letterSpacing: -0.5,
   },
   titleText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+    lineHeight: 15,
   },
   subtitleText: {
-    fontSize: 10,
+    fontSize: 12,
     color: theme.colors.textSecondary,
     marginTop: 2,
   },

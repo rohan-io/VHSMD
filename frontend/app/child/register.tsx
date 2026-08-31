@@ -16,11 +16,18 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
+import { DateField } from "@/src/components/DateField";
 import { useToast } from "@/src/components/Toast";
 import { useAuth } from "@/src/context/AuthContext";
 import { useOfflineSync } from "@/src/context/OfflineSyncContext";
 import { createChild, listPregnancies, getPregnancy } from "@/src/api/mch";
 import { PregnancyRecord } from "@/src/types";
+import { validateDate, shiftISO, todayISO } from "@/src/utils/date";
+import { isTrulyDelivered } from "@/src/utils/pregnancy";
+
+// Newborn registration: DOB within the last ~6 years, never in the future.
+const DOB_MIN = shiftISO(-366 * 6);
+const DOB_MAX = todayISO();
 
 export default function RegisterChildScreen() {
   const insets = useSafeAreaInsets();
@@ -43,7 +50,12 @@ export default function RegisterChildScreen() {
   });
   const [gender, setGender] = useState<"Male" | "Female">("Male");
   const [submitting, setSubmitting] = useState(false);
+  const [dobError, setDobError] = useState<string | null>(null);
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const setDob = (v: string) => {
+    setForm((f) => ({ ...f, dob: v }));
+    if (dobError) setDobError(null);
+  };
 
   useEffect(() => {
     if (motherId) {
@@ -68,7 +80,8 @@ export default function RegisterChildScreen() {
   const handleSubmit = async () => {
     if (!mother) { showToast("Please select the mother.", "error"); return; }
     if (!form.child_name.trim()) { showToast("Child name is required.", "error"); return; }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.dob.trim())) { showToast("DOB must be YYYY-MM-DD.", "error"); return; }
+    const dobMsg = validateDate(form.dob, { min: DOB_MIN, max: DOB_MAX, label: "Date of birth" });
+    if (dobMsg) { setDobError(dobMsg); showToast(dobMsg, "error"); return; }
 
     const payload = {
       mother_id: mother.id,
@@ -130,7 +143,7 @@ export default function RegisterChildScreen() {
         <Text style={styles.sectionTitle}>Child Details</Text>
         <View style={styles.field}>
           <Text style={styles.label}>Child Name</Text>
-          <TextInput testID="child-name-input" style={styles.input} value={form.child_name} onChangeText={set("child_name")} placeholder="e.g. Aarav Kumar" placeholderTextColor={theme.colors.textMuted} />
+          <TextInput testID="child-name-input" style={styles.input} value={form.child_name} onChangeText={set("child_name")} placeholder="e.g. Aarav Kumar" placeholderTextColor={theme.colors.textMuted} maxLength={80} />
         </View>
 
         <Text style={styles.label}>Gender</Text>
@@ -145,7 +158,14 @@ export default function RegisterChildScreen() {
 
         <View style={styles.field}>
           <Text style={styles.label}>Date of Birth</Text>
-          <TextInput testID="child-dob-input" style={styles.input} value={form.dob} onChangeText={set("dob")} placeholder="YYYY-MM-DD" placeholderTextColor={theme.colors.textMuted} />
+          <DateField
+            testID="child-dob-input"
+            value={form.dob}
+            onChange={setDob}
+            min={DOB_MIN}
+            max={DOB_MAX}
+            error={dobError}
+          />
         </View>
         <View style={styles.rowTwo}>
           <View style={{ flex: 1 }}>
@@ -197,7 +217,7 @@ export default function RegisterChildScreen() {
                   <View style={styles.optAvatar}><Text style={styles.optAvatarText}>{item.full_name.charAt(0)}</Text></View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.optName}>{item.full_name}</Text>
-                    <Text style={styles.optSub}>{item.village} • {item.status === "delivered" ? "Delivered" : item.gestational_age_label}</Text>
+                    <Text style={styles.optSub}>{item.village} • {isTrulyDelivered(item) ? "Delivered" : item.gestational_age_label}</Text>
                   </View>
                 </Pressable>
               )}
@@ -223,7 +243,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 6 },
   input: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 12, height: 46, fontSize: 14, color: theme.colors.textPrimary },
   rowTwo: { flexDirection: "row", gap: 10 },
-  hint: { fontSize: 11, color: theme.colors.textMuted, fontStyle: "italic", marginTop: 4 },
+  hint: { fontSize: 12, color: theme.colors.textMuted, fontStyle: "italic", marginTop: 4 },
   genderRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
   genderChip: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 46, borderRadius: theme.radius.md, backgroundColor: theme.colors.surfaceSecondary, borderWidth: 1, borderColor: theme.colors.border },
   genderChipActive: { backgroundColor: theme.colors.brand, borderColor: theme.colors.brand },
@@ -241,7 +261,7 @@ const styles = StyleSheet.create({
   optAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: theme.colors.brandLight, alignItems: "center", justifyContent: "center" },
   optAvatarText: { fontSize: 15, fontWeight: "800", color: theme.colors.brandDark },
   optName: { fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
-  optSub: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 1 },
+  optSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
   modalClose: { marginTop: 12, backgroundColor: theme.colors.surfaceTertiary, borderRadius: theme.radius.md, paddingVertical: 12, alignItems: "center" },
   modalCloseText: { fontSize: 14, fontWeight: "700", color: theme.colors.textSecondary },
 });
