@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
 import { StatusBadge } from "@/src/components/StatusBadge";
 import { LoadError } from "@/src/components/LoadError";
@@ -32,6 +33,8 @@ const FILTERS = [
 
 export default function PregnancyListScreen() {
   const router = useRouter();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const [items, setItems] = useState<PregnancyRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -85,22 +88,22 @@ export default function PregnancyListScreen() {
         </View>
         {item.is_high_risk ? (
           <View style={styles.riskTag}>
-            <Ionicons name="warning" size={12} color="#991B1B" />
+            <Ionicons name="warning" size={12} color={t.colors.errorText} />
             <Text style={styles.riskTagText}>HIGH RISK</Text>
           </View>
         ) : null}
       </View>
       <View style={styles.cardMeta}>
         <View style={styles.metaItem}>
-          <Ionicons name="location-outline" size={13} color={theme.colors.textSecondary} />
+          <Ionicons name="location-outline" size={13} color={t.colors.textSecondary} />
           <Text style={styles.metaText}>{item.village}</Text>
         </View>
         <View style={styles.metaItem}>
-          <Ionicons name="pulse-outline" size={13} color={theme.colors.textSecondary} />
+          <Ionicons name="pulse-outline" size={13} color={t.colors.textSecondary} />
           <Text style={styles.metaText}>{item.gestational_age_label}</Text>
         </View>
         <View style={styles.metaItem}>
-          <Ionicons name="calendar-outline" size={13} color={theme.colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={13} color={t.colors.textSecondary} />
           <Text style={styles.metaText}>EDD {item.edd}</Text>
         </View>
       </View>
@@ -118,12 +121,12 @@ export default function PregnancyListScreen() {
       {/* Sticky search + chips */}
       <View style={styles.stickyHeader}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color={theme.colors.textMuted} />
+          <Ionicons name="search" size={18} color={t.colors.textMuted} />
           <TextInput
             testID="pregnancy-search-input"
             style={styles.searchInput}
             placeholder="Search name, ID, mobile, village…"
-            placeholderTextColor={theme.colors.textMuted}
+            placeholderTextColor={t.colors.textMuted}
             value={search}
             onChangeText={setSearch}
             onSubmitEditing={onSearchSubmit}
@@ -131,7 +134,7 @@ export default function PregnancyListScreen() {
           />
           {search.length > 0 && (
             <Pressable testID="pregnancy-search-clear" onPress={() => { setSearch(""); load("", filter); }}>
-              <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
+              <Ionicons name="close-circle" size={18} color={t.colors.textMuted} />
             </Pressable>
           )}
         </View>
@@ -158,7 +161,7 @@ export default function PregnancyListScreen() {
 
       {loading ? (
         <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={theme.colors.brand} />
+          <ActivityIndicator size="large" color={t.colors.brand} />
         </View>
       ) : error ? (
         <LoadError onRetry={() => load(search, filter)} testID="pregnancy-load-error" />
@@ -175,7 +178,7 @@ export default function PregnancyListScreen() {
           ListEmptyComponent={
             search.trim() || filter !== "all" ? (
               <View style={styles.centerFill}>
-                <Ionicons name="search-outline" size={40} color={theme.colors.textMuted} />
+                <Ionicons name="search-outline" size={40} color={t.colors.textMuted} />
                 <Text style={styles.emptyText}>No beneficiaries match this search or filter.</Text>
                 <Pressable
                   testID="pregnancy-empty-clear"
@@ -187,14 +190,14 @@ export default function PregnancyListScreen() {
               </View>
             ) : (
               <View style={styles.centerFill}>
-                <Ionicons name="clipboard-outline" size={40} color={theme.colors.textMuted} />
+                <Ionicons name="clipboard-outline" size={40} color={t.colors.textMuted} />
                 <Text style={styles.emptyText}>No pregnancies registered yet.</Text>
                 <Pressable
                   testID="pregnancy-empty-register"
                   onPress={() => router.push("/pregnancy/register")}
                   style={styles.emptyBtn}
                 >
-                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                  <Ionicons name="add" size={16} color={t.colors.onBrand} />
                   <Text style={styles.emptyBtnText}>Register a pregnancy</Text>
                 </Pressable>
               </View>
@@ -208,86 +211,87 @@ export default function PregnancyListScreen() {
         onPress={() => router.push("/pregnancy/register")}
         style={styles.fab}
       >
-        <Ionicons name="add" size={26} color="#FFFFFF" />
+        <Ionicons name="add" size={26} color={t.colors.onBrand} />
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.surface },
-  stickyHeader: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    paddingTop: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  searchBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginHorizontal: 16,
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchInput: { flex: 1, fontSize: 14, color: theme.colors.textPrimary },
-  chipRow: { gap: 8, paddingHorizontal: 16, paddingTop: 12 },
-  chip: {
-    height: 44,
-    flexShrink: 0,
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  chipActive: { backgroundColor: theme.colors.brand, borderColor: theme.colors.brand },
-  chipText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary },
-  chipTextActive: { color: "#FFFFFF" },
-  centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 10, minHeight: 200 },
-  emptyText: { fontSize: 13, color: theme.colors.textSecondary, textAlign: "center" },
-  emptyBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, backgroundColor: theme.colors.brand, borderRadius: theme.radius.md, paddingHorizontal: 16, paddingVertical: 10 },
-  emptyBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
-  listContent: { padding: 16, paddingBottom: 100 },
-  countText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary, marginBottom: 10 },
-  card: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: theme.radius.md,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  cardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
-  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: theme.colors.brandLight, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 17, fontWeight: "800", color: theme.colors.brandDark },
-  name: { fontSize: 15, fontWeight: "700", color: theme.colors.textPrimary },
-  sub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
-  riskTag: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: theme.colors.errorLight, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 4 },
-  riskTagText: { fontSize: 12, fontWeight: "800", color: "#991B1B" },
-  cardMeta: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 10 },
-  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  metaText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: "600" },
-  cardBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
-  benId: { fontSize: 11, color: theme.colors.textMuted, fontWeight: "700" },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.brand,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: theme.colors.brandDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.colors.surface },
+    stickyHeader: {
+      backgroundColor: t.colors.surfaceSecondary,
+      paddingTop: 12,
+      paddingBottom: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: t.colors.border,
+    },
+    searchBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginHorizontal: 16,
+      backgroundColor: t.colors.surfaceTertiary,
+      borderRadius: t.radius.md,
+      paddingHorizontal: 12,
+      height: 44,
+    },
+    searchInput: { flex: 1, fontSize: 14, color: t.colors.textPrimary },
+    chipRow: { gap: 8, paddingHorizontal: 16, paddingTop: 12 },
+    chip: {
+      height: 44,
+      flexShrink: 0,
+      justifyContent: "center",
+      paddingHorizontal: 16,
+      borderRadius: t.radius.pill,
+      backgroundColor: t.colors.surfaceTertiary,
+      borderWidth: 1,
+      borderColor: t.colors.border,
+    },
+    chipActive: { backgroundColor: t.colors.brand, borderColor: t.colors.brand },
+    chipText: { fontSize: 12, fontWeight: "700", color: t.colors.textSecondary },
+    chipTextActive: { color: t.colors.onBrand },
+    centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 10, minHeight: 200 },
+    emptyText: { fontSize: 13, color: t.colors.textSecondary, textAlign: "center" },
+    emptyBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, backgroundColor: t.colors.brand, borderRadius: t.radius.md, paddingHorizontal: 16, paddingVertical: 10 },
+    emptyBtnText: { color: t.colors.onBrand, fontSize: 13, fontWeight: "700" },
+    listContent: { padding: 16, paddingBottom: 100 },
+    countText: { fontSize: 12, fontWeight: "700", color: t.colors.textSecondary, marginBottom: 10 },
+    card: {
+      backgroundColor: t.colors.surfaceSecondary,
+      borderRadius: t.radius.md,
+      padding: 14,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: t.colors.border,
+    },
+    cardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
+    avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: t.colors.brandLight, alignItems: "center", justifyContent: "center" },
+    avatarText: { fontSize: 17, fontWeight: "800", color: t.colors.brandDark },
+    name: { fontSize: 15, fontWeight: "700", color: t.colors.textPrimary },
+    sub: { fontSize: 12, color: t.colors.textSecondary, marginTop: 1 },
+    riskTag: { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: t.colors.errorLight, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 4 },
+    riskTagText: { fontSize: 12, fontWeight: "800", color: t.colors.errorText },
+    cardMeta: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 10 },
+    metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+    metaText: { fontSize: 12, color: t.colors.textSecondary, fontWeight: "600" },
+    cardBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 },
+    benId: { fontSize: 11, color: t.colors.textMuted, fontWeight: "700" },
+    fab: {
+      position: "absolute",
+      right: 20,
+      bottom: 20,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: t.colors.brand,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: t.colors.brandDark,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+  });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
 import { DateField } from "@/src/components/DateField";
 import { useToast } from "@/src/components/Toast";
@@ -38,26 +39,33 @@ interface FieldProps {
   multiline?: boolean;
   maxLength?: number;
 }
-const Field: React.FC<FieldProps> = ({ label, value, onChangeText, placeholder, keyboardType, testID, required, multiline, maxLength }) => (
-  <View style={styles.field}>
-    <Text style={styles.label}>{label}{required ? <Text style={{ color: theme.colors.error }}> *</Text> : null}</Text>
-    <TextInput
-      testID={testID}
-      style={[styles.input, multiline && styles.inputMultiline]}
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor={theme.colors.textMuted}
-      keyboardType={keyboardType}
-      multiline={multiline}
-      maxLength={maxLength ?? (multiline ? 300 : 80)}
-    />
-  </View>
-);
+// Top-level (stable identity — no remount on keystroke) but theme-aware.
+const Field: React.FC<FieldProps> = ({ label, value, onChangeText, placeholder, keyboardType, testID, required, multiline, maxLength }) => {
+  const t = useTheme();
+  const styles = useMemo(() => makeFieldStyles(t), [t]);
+  return (
+    <View style={styles.field}>
+      <Text style={styles.label}>{label}{required ? <Text style={{ color: t.colors.error }}> *</Text> : null}</Text>
+      <TextInput
+        testID={testID}
+        style={[styles.input, multiline && styles.inputMultiline]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={t.colors.textMuted}
+        keyboardType={keyboardType}
+        multiline={multiline}
+        maxLength={maxLength ?? (multiline ? 300 : 80)}
+      />
+    </View>
+  );
+};
 
 export default function RegisterPregnancyScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const { showToast } = useToast();
   const { user } = useAuth();
   const { isSimulatedOffline, addToOfflineQueue } = useOfflineSync();
@@ -188,7 +196,7 @@ export default function RegisterPregnancyScreen() {
 
         <Text style={styles.sectionTitle}>Pregnancy Information</Text>
         <View style={styles.field}>
-          <Text style={styles.label}>Last Menstrual Period (LMP)<Text style={{ color: theme.colors.error }}> *</Text></Text>
+          <Text style={styles.label}>Last Menstrual Period (LMP)<Text style={{ color: t.colors.error }}> *</Text></Text>
           <DateField
             testID="reg-lmp"
             value={form.lmp}
@@ -224,7 +232,7 @@ export default function RegisterPregnancyScreen() {
         <Field testID="reg-history" label="Previous Pregnancy History" value={form.previous_pregnancy_history} onChangeText={set("previous_pregnancy_history")} placeholder="C-section, complications, etc." multiline />
 
         <Pressable testID="reg-high-risk-toggle" onPress={() => setHighRisk(!highRisk)} style={styles.riskToggle}>
-          <Ionicons name={highRisk ? "checkbox" : "square-outline"} size={22} color={highRisk ? theme.colors.error : theme.colors.textMuted} />
+          <Ionicons name={highRisk ? "checkbox" : "square-outline"} size={22} color={highRisk ? t.colors.error : t.colors.textMuted} />
           <Text style={styles.riskToggleText}>Manually flag as High Risk Pregnancy</Text>
         </Pressable>
         <Text style={styles.hint}>System also auto-detects risk from age, BP, Hb, gravida & history.</Text>
@@ -233,10 +241,10 @@ export default function RegisterPregnancyScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Pressable testID="reg-submit-btn" onPress={handleSubmit} disabled={submitting} style={[styles.submitBtn, submitting && { opacity: 0.6 }]}>
           {submitting ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color={t.colors.onBrand} />
           ) : (
             <>
-              <Ionicons name={isSimulatedOffline ? "cloud-offline" : "save"} size={18} color="#FFF" />
+              <Ionicons name={isSimulatedOffline ? "cloud-offline" : "save"} size={18} color={t.colors.onBrand} />
               <Text style={styles.submitText}>{isSimulatedOffline ? "Save Offline" : "Register Pregnancy"}</Text>
             </>
           )}
@@ -246,24 +254,31 @@ export default function RegisterPregnancyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.surface },
-  scroll: { padding: 16, paddingBottom: 40 },
-  sectionTitle: { fontSize: 14, fontWeight: "800", color: theme.colors.brand, marginTop: 16, marginBottom: 10 },
-  field: { marginBottom: 12 },
-  label: { fontSize: 12, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 6 },
-  input: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 12, height: 46, fontSize: 14, color: theme.colors.textPrimary },
-  inputMultiline: { height: 70, paddingTop: 10, textAlignVertical: "top" },
-  rowTwo: { flexDirection: "row", gap: 10 },
-  hint: { fontSize: 12, color: theme.colors.textMuted, marginTop: -4, marginBottom: 8, fontStyle: "italic" },
-  bgRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
-  bgChip: { width: 54, height: 44, borderRadius: theme.radius.sm, backgroundColor: theme.colors.surfaceSecondary, borderWidth: 1, borderColor: theme.colors.border, alignItems: "center", justifyContent: "center" },
-  bgChipActive: { backgroundColor: theme.colors.brand, borderColor: theme.colors.brand },
-  bgChipText: { fontSize: 13, fontWeight: "700", color: theme.colors.textSecondary },
-  bgChipTextActive: { color: "#FFF" },
-  riskToggle: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 12, borderWidth: 1, borderColor: theme.colors.border },
-  riskToggleText: { fontSize: 13, fontWeight: "700", color: theme.colors.textPrimary },
-  footer: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: theme.colors.surfaceSecondary, borderTopWidth: 1, borderTopColor: theme.colors.border },
-  submitBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: theme.colors.brand, borderRadius: theme.radius.md, height: 52 },
-  submitText: { color: "#FFF", fontSize: 15, fontWeight: "700" },
-});
+const makeFieldStyles = (t: Theme) =>
+  StyleSheet.create({
+    field: { marginBottom: 12 },
+    label: { fontSize: 12, fontWeight: "700", color: t.colors.textPrimary, marginBottom: 6 },
+    input: { backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.colors.border, paddingHorizontal: 12, height: 46, fontSize: 14, color: t.colors.textPrimary },
+    inputMultiline: { height: 70, paddingTop: 10, textAlignVertical: "top" },
+  });
+
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.colors.surface },
+    scroll: { padding: 16, paddingBottom: 40 },
+    sectionTitle: { fontSize: 14, fontWeight: "800", color: t.colors.brandText, marginTop: 16, marginBottom: 10 },
+    field: { marginBottom: 12 },
+    label: { fontSize: 12, fontWeight: "700", color: t.colors.textPrimary, marginBottom: 6 },
+    rowTwo: { flexDirection: "row", gap: 10 },
+    hint: { fontSize: 12, color: t.colors.textMuted, marginTop: -4, marginBottom: 8, fontStyle: "italic" },
+    bgRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
+    bgChip: { width: 54, height: 44, borderRadius: t.radius.sm, backgroundColor: t.colors.surfaceSecondary, borderWidth: 1, borderColor: t.colors.border, alignItems: "center", justifyContent: "center" },
+    bgChipActive: { backgroundColor: t.colors.brand, borderColor: t.colors.brand },
+    bgChipText: { fontSize: 13, fontWeight: "700", color: t.colors.textSecondary },
+    bgChipTextActive: { color: t.colors.onBrand },
+    riskToggle: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12, backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, padding: 12, borderWidth: 1, borderColor: t.colors.border },
+    riskToggleText: { fontSize: 13, fontWeight: "700", color: t.colors.textPrimary },
+    footer: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: t.colors.surfaceSecondary, borderTopWidth: 1, borderTopColor: t.colors.border },
+    submitBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: t.colors.brand, borderRadius: t.radius.md, height: 52 },
+    submitText: { color: t.colors.onBrand, fontSize: 15, fontWeight: "700" },
+  });

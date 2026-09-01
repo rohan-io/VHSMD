@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -9,7 +9,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 
 type ToastType = "success" | "error" | "info";
 interface ToastState {
@@ -25,6 +26,8 @@ const ToastContext = createContext<ToastContextType>({ showToast: () => {} });
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const insets = useSafeAreaInsets();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const [toast, setToast] = useState<ToastState | null>(null);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(-20);
@@ -49,10 +52,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     transform: [{ translateY: translateY.value }],
   }));
 
+  // Toast chips are intentionally always-dark (they float over any surface).
   const config = {
     success: { icon: "checkmark-circle" as const, bg: "#065F46", tint: "#D1FAE5" },
     error: { icon: "alert-circle" as const, bg: "#991B1B", tint: "#FEE2E2" },
-    info: { icon: "information-circle" as const, bg: theme.colors.surfaceInverse, tint: "#E2E8F0" },
+    info: { icon: "information-circle" as const, bg: t.colors.inkBar, tint: t.colors.onInkBar },
   };
 
   return (
@@ -77,35 +81,36 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 };
 
-const styles = StyleSheet.create({
-  wrap: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    zIndex: 9999,
-    alignItems: "center",
-  },
-  toast: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: theme.radius.md,
-    maxWidth: 480,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  text: {
-    flex: 1,
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 18,
-  },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    wrap: {
+      position: "absolute",
+      left: 16,
+      right: 16,
+      zIndex: 9999,
+      alignItems: "center",
+    },
+    toast: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: t.radius.md,
+      maxWidth: 480,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    text: {
+      flex: 1,
+      color: "#FFFFFF",
+      fontSize: 13,
+      fontWeight: "600",
+      lineHeight: 18,
+    },
+  });
 
 export const useToast = () => useContext(ToastContext);

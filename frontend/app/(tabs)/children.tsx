@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
 import { LoadError } from "@/src/components/LoadError";
 import { listChildren } from "@/src/api/mch";
@@ -27,6 +28,8 @@ const FILTERS = [
 
 export default function ChildrenListScreen() {
   const router = useRouter();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const [items, setItems] = useState<ChildRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -61,7 +64,8 @@ export default function ChildrenListScreen() {
   const renderItem = ({ item }: { item: ChildRecord }) => {
     const st = item.vaccine_stats;
     const pct = st?.progress_percent ?? 0;
-    const progressColor = (st?.overdue ?? 0) > 0 ? theme.colors.warning : theme.colors.success;
+    const progressColor = (st?.overdue ?? 0) > 0 ? t.colors.warning : t.colors.success;
+    const isFemale = item.gender === "Female";
     return (
       <Pressable
         testID={`child-card-${item.id}`}
@@ -69,8 +73,8 @@ export default function ChildrenListScreen() {
         style={styles.card}
       >
         <View style={styles.cardTop}>
-          <View style={[styles.avatar, { backgroundColor: item.gender === "Female" ? "#FCE7F3" : "#DBEAFE" }]}>
-            <Ionicons name={item.gender === "Female" ? "female" : "male"} size={18} color={item.gender === "Female" ? "#BE185D" : "#1D4ED8"} />
+          <View style={[styles.avatar, { backgroundColor: isFemale ? t.colors.femaleTint : t.colors.maleTint }]}>
+            <Ionicons name={isFemale ? "female" : "male"} size={18} color={isFemale ? t.colors.onFemaleTint : t.colors.onMaleTint} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.name} numberOfLines={1}>{item.child_name}</Text>
@@ -92,11 +96,11 @@ export default function ChildrenListScreen() {
 
         <View style={styles.cardMeta}>
           <View style={styles.metaItem}>
-            <Ionicons name="location-outline" size={13} color={theme.colors.textSecondary} />
+            <Ionicons name="location-outline" size={13} color={t.colors.textSecondary} />
             <Text style={styles.metaText}>{item.village}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name="scale-outline" size={13} color={theme.colors.textSecondary} />
+            <Ionicons name="scale-outline" size={13} color={t.colors.textSecondary} />
             <Text style={styles.metaText}>{item.birth_weight} kg birth wt</Text>
           </View>
           <Text style={styles.childId}>{item.child_id}</Text>
@@ -111,12 +115,12 @@ export default function ChildrenListScreen() {
 
       <View style={styles.stickyHeader}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color={theme.colors.textMuted} />
+          <Ionicons name="search" size={18} color={t.colors.textMuted} />
           <TextInput
             testID="child-search-input"
             style={styles.searchInput}
             placeholder="Search child, mother, ID, village…"
-            placeholderTextColor={theme.colors.textMuted}
+            placeholderTextColor={t.colors.textMuted}
             value={search}
             onChangeText={setSearch}
             onSubmitEditing={() => load(search, filter)}
@@ -124,7 +128,7 @@ export default function ChildrenListScreen() {
           />
           {search.length > 0 && (
             <Pressable testID="child-search-clear" onPress={() => { setSearch(""); load("", filter); }}>
-              <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
+              <Ionicons name="close-circle" size={18} color={t.colors.textMuted} />
             </Pressable>
           )}
         </View>
@@ -142,7 +146,7 @@ export default function ChildrenListScreen() {
 
       {loading ? (
         <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={theme.colors.brand} />
+          <ActivityIndicator size="large" color={t.colors.brand} />
         </View>
       ) : error ? (
         <LoadError onRetry={() => load(search, filter)} testID="children-load-error" />
@@ -157,7 +161,7 @@ export default function ChildrenListScreen() {
           ListEmptyComponent={
             search.trim() || filter !== "All" ? (
               <View style={styles.centerFill}>
-                <Ionicons name="search-outline" size={40} color={theme.colors.textMuted} />
+                <Ionicons name="search-outline" size={40} color={t.colors.textMuted} />
                 <Text style={styles.emptyText}>No children match this search or filter.</Text>
                 <Pressable
                   testID="children-empty-clear"
@@ -169,14 +173,14 @@ export default function ChildrenListScreen() {
               </View>
             ) : (
               <View style={styles.centerFill}>
-                <Ionicons name="clipboard-outline" size={40} color={theme.colors.textMuted} />
+                <Ionicons name="clipboard-outline" size={40} color={t.colors.textMuted} />
                 <Text style={styles.emptyText}>No children registered yet.</Text>
                 <Pressable
                   testID="children-empty-register"
                   onPress={() => router.push("/child/register")}
                   style={styles.emptyBtn}
                 >
-                  <Ionicons name="add" size={16} color="#FFFFFF" />
+                  <Ionicons name="add" size={16} color={t.colors.onBrand} />
                   <Text style={styles.emptyBtnText}>Register a child</Text>
                 </Pressable>
               </View>
@@ -186,42 +190,43 @@ export default function ChildrenListScreen() {
       )}
 
       <Pressable testID="fab-register-child" onPress={() => router.push("/child/register")} style={styles.fab}>
-        <Ionicons name="add" size={26} color="#FFFFFF" />
+        <Ionicons name="add" size={26} color={t.colors.onBrand} />
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.surface },
-  stickyHeader: { backgroundColor: theme.colors.surfaceSecondary, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  searchBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, backgroundColor: theme.colors.surfaceTertiary, borderRadius: theme.radius.md, paddingHorizontal: 12, height: 44 },
-  searchInput: { flex: 1, fontSize: 14, color: theme.colors.textPrimary },
-  chipRow: { gap: 8, paddingHorizontal: 16, paddingTop: 12 },
-  chip: { height: 44, flexShrink: 0, justifyContent: "center", paddingHorizontal: 16, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surfaceTertiary, borderWidth: 1, borderColor: theme.colors.border },
-  chipActive: { backgroundColor: theme.colors.brand, borderColor: theme.colors.brand },
-  chipText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary },
-  chipTextActive: { color: "#FFFFFF" },
-  centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 10, minHeight: 200 },
-  emptyText: { fontSize: 13, color: theme.colors.textSecondary, textAlign: "center" },
-  emptyBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, backgroundColor: theme.colors.brand, borderRadius: theme.radius.md, paddingHorizontal: 16, paddingVertical: 10 },
-  emptyBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
-  listContent: { padding: 16, paddingBottom: 100 },
-  countText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary, marginBottom: 10 },
-  card: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border },
-  cardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
-  avatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
-  name: { fontSize: 15, fontWeight: "700", color: theme.colors.textPrimary },
-  sub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
-  overduePill: { backgroundColor: theme.colors.errorLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-  overdueText: { fontSize: 12, fontWeight: "800", color: "#991B1B" },
-  progressWrap: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 },
-  progressBar: { flex: 1, height: 8, borderRadius: 4, backgroundColor: theme.colors.surfaceTertiary, overflow: "hidden" },
-  progressFill: { height: 8, borderRadius: 4, backgroundColor: theme.colors.success },
-  progressText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary },
-  cardMeta: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 10 },
-  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  metaText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: "600" },
-  childId: { marginLeft: "auto", fontSize: 11, color: theme.colors.textMuted, fontWeight: "700" },
-  fab: { position: "absolute", right: 20, bottom: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.brand, alignItems: "center", justifyContent: "center", shadowColor: theme.colors.brandDark, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.colors.surface },
+    stickyHeader: { backgroundColor: t.colors.surfaceSecondary, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: t.colors.border },
+    searchBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, backgroundColor: t.colors.surfaceTertiary, borderRadius: t.radius.md, paddingHorizontal: 12, height: 44 },
+    searchInput: { flex: 1, fontSize: 14, color: t.colors.textPrimary },
+    chipRow: { gap: 8, paddingHorizontal: 16, paddingTop: 12 },
+    chip: { height: 44, flexShrink: 0, justifyContent: "center", paddingHorizontal: 16, borderRadius: t.radius.pill, backgroundColor: t.colors.surfaceTertiary, borderWidth: 1, borderColor: t.colors.border },
+    chipActive: { backgroundColor: t.colors.brand, borderColor: t.colors.brand },
+    chipText: { fontSize: 12, fontWeight: "700", color: t.colors.textSecondary },
+    chipTextActive: { color: t.colors.onBrand },
+    centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 10, minHeight: 200 },
+    emptyText: { fontSize: 13, color: t.colors.textSecondary, textAlign: "center" },
+    emptyBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4, backgroundColor: t.colors.brand, borderRadius: t.radius.md, paddingHorizontal: 16, paddingVertical: 10 },
+    emptyBtnText: { color: t.colors.onBrand, fontSize: 13, fontWeight: "700" },
+    listContent: { padding: 16, paddingBottom: 100 },
+    countText: { fontSize: 12, fontWeight: "700", color: t.colors.textSecondary, marginBottom: 10 },
+    card: { backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: t.colors.border },
+    cardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
+    avatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+    name: { fontSize: 15, fontWeight: "700", color: t.colors.textPrimary },
+    sub: { fontSize: 12, color: t.colors.textSecondary, marginTop: 1 },
+    overduePill: { backgroundColor: t.colors.errorLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+    overdueText: { fontSize: 12, fontWeight: "800", color: t.colors.errorText },
+    progressWrap: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 },
+    progressBar: { flex: 1, height: 8, borderRadius: 4, backgroundColor: t.colors.surfaceTertiary, overflow: "hidden" },
+    progressFill: { height: 8, borderRadius: 4, backgroundColor: t.colors.success },
+    progressText: { fontSize: 12, fontWeight: "700", color: t.colors.textSecondary },
+    cardMeta: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 10 },
+    metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+    metaText: { fontSize: 12, color: t.colors.textSecondary, fontWeight: "600" },
+    childId: { marginLeft: "auto", fontSize: 11, color: t.colors.textMuted, fontWeight: "700" },
+    fab: { position: "absolute", right: 20, bottom: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: t.colors.brand, alignItems: "center", justifyContent: "center", shadowColor: t.colors.brandDark, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  });

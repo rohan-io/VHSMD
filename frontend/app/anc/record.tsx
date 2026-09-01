@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
 import { DateField } from "@/src/components/DateField";
 import { useToast } from "@/src/components/Toast";
@@ -28,6 +29,8 @@ const NEXT_VISIT_MAX = shiftISO(300);
 export default function ANCRecordScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const { showToast } = useToast();
   const { user } = useAuth();
   const { isSimulatedOffline, addToOfflineQueue } = useOfflineSync();
@@ -120,7 +123,7 @@ export default function ANCRecordScreen() {
         value={form[key]}
         onChangeText={set(key)}
         placeholder={ph}
-        placeholderTextColor={theme.colors.textMuted}
+        placeholderTextColor={t.colors.textMuted}
         keyboardType={kt}
         multiline={ml}
       />
@@ -132,7 +135,7 @@ export default function ANCRecordScreen() {
       <Header title={`Record ANC Visit #${visitNumber || ""}`} showBack showOfflineToggle={false} />
       <KeyboardAwareScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bottomOffset={20}>
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={16} color={theme.colors.brand} />
+          <Ionicons name="information-circle" size={16} color={t.colors.brandText} />
           <Text style={styles.infoText}>High risk auto-flagged if BP ≥ 140/90 or Hb &lt; 9.0 g/dL.</Text>
         </View>
 
@@ -167,9 +170,9 @@ export default function ANCRecordScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Pressable testID="anc-submit-btn" onPress={handleSubmit} disabled={submitting} style={[styles.submitBtn, submitting && { opacity: 0.6 }]}>
-          {submitting ? <ActivityIndicator color="#FFF" /> : (
+          {submitting ? <ActivityIndicator color={t.colors.onBrand} /> : (
             <>
-              <Ionicons name={isSimulatedOffline ? "cloud-offline" : "save"} size={18} color="#FFF" />
+              <Ionicons name={isSimulatedOffline ? "cloud-offline" : "save"} size={18} color={t.colors.onBrand} />
               <Text style={styles.submitText}>{isSimulatedOffline ? "Save Offline" : "Save ANC Visit"}</Text>
             </>
           )}
@@ -179,18 +182,19 @@ export default function ANCRecordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.surface },
-  scroll: { padding: 16, paddingBottom: 40 },
-  infoBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: theme.colors.brandLight, borderRadius: theme.radius.md, padding: 12, marginBottom: 8 },
-  infoText: { flex: 1, fontSize: 12, color: theme.colors.brandDark, fontWeight: "600" },
-  sectionTitle: { fontSize: 14, fontWeight: "800", color: theme.colors.brand, marginTop: 14, marginBottom: 10 },
-  field: { marginBottom: 12 },
-  label: { fontSize: 12, fontWeight: "700", color: theme.colors.textPrimary, marginBottom: 6 },
-  input: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 12, height: 46, fontSize: 14, color: theme.colors.textPrimary },
-  inputMultiline: { height: 70, paddingTop: 10, textAlignVertical: "top" },
-  rowTwo: { flexDirection: "row", gap: 10 },
-  footer: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: theme.colors.surfaceSecondary, borderTopWidth: 1, borderTopColor: theme.colors.border },
-  submitBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: theme.colors.brand, borderRadius: theme.radius.md, height: 52 },
-  submitText: { color: "#FFF", fontSize: 15, fontWeight: "700" },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.colors.surface },
+    scroll: { padding: 16, paddingBottom: 40 },
+    infoBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: t.colors.brandLight, borderRadius: t.radius.md, padding: 12, marginBottom: 8 },
+    infoText: { flex: 1, fontSize: 12, color: t.colors.brandDark, fontWeight: "600" },
+    sectionTitle: { fontSize: 14, fontWeight: "800", color: t.colors.brandText, marginTop: 14, marginBottom: 10 },
+    field: { marginBottom: 12 },
+    label: { fontSize: 12, fontWeight: "700", color: t.colors.textPrimary, marginBottom: 6 },
+    input: { backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, borderWidth: 1, borderColor: t.colors.border, paddingHorizontal: 12, height: 46, fontSize: 14, color: t.colors.textPrimary },
+    inputMultiline: { height: 70, paddingTop: 10, textAlignVertical: "top" },
+    rowTwo: { flexDirection: "row", gap: 10 },
+    footer: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: t.colors.surfaceSecondary, borderTopWidth: 1, borderTopColor: t.colors.border },
+    submitBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: t.colors.brand, borderRadius: t.radius.md, height: 52 },
+    submitText: { color: t.colors.onBrand, fontSize: 15, fontWeight: "700" },
+  });
