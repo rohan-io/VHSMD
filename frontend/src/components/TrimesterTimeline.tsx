@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 
 interface TrimesterTimelineProps {
   currentTrimester: 1 | 2 | 3;
@@ -16,6 +17,9 @@ export const TrimesterTimeline: React.FC<TrimesterTimelineProps> = ({
   gestationalDays = 0,
   edd,
 }) => {
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
+
   const steps = [
     {
       num: 1,
@@ -61,7 +65,7 @@ export const TrimesterTimeline: React.FC<TrimesterTimelineProps> = ({
         </View>
 
         <View style={styles.eddBadge}>
-          <Ionicons name="calendar" size={13} color={theme.colors.brandDark} />
+          <Ionicons name="calendar" size={13} color={t.colors.brandDark} />
           <Text style={styles.eddText}>EDD: {edd}</Text>
         </View>
       </View>
@@ -86,12 +90,12 @@ export const TrimesterTimeline: React.FC<TrimesterTimelineProps> = ({
                   ]}
                 >
                   {isDone ? (
-                    <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                    <Ionicons name="checkmark" size={14} color={t.colors.onStatus} />
                   ) : (
                     <Ionicons
                       name={step.icon}
                       size={14}
-                      color={isCurrent ? "#FFFFFF" : theme.colors.textMuted}
+                      color={isCurrent ? t.colors.onBrand : t.colors.textMuted}
                     />
                   )}
                 </View>
@@ -126,7 +130,7 @@ export const TrimesterTimeline: React.FC<TrimesterTimelineProps> = ({
       {/* Clinical Guidance Milestone Box — protocol reference, always neutral.
           Risk is signalled by the HIGH RISK banner above, not by recolouring this. */}
       <View style={styles.guidanceBox}>
-        <Ionicons name="information-circle" size={18} color={theme.colors.brand} />
+        <Ionicons name="information-circle" size={18} color={t.colors.brandText} />
         <View style={styles.guidanceTextCol}>
           <Text style={styles.guidanceTitle}>
             {currentTrimester === 1
@@ -141,133 +145,132 @@ export const TrimesterTimeline: React.FC<TrimesterTimelineProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: theme.radius.md,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: 16,
-  },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  titleCol: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  currentAge: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  ageBold: {
-    fontWeight: "800",
-    color: theme.colors.brand,
-  },
-  eddBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: theme.colors.brandLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: theme.radius.sm,
-  },
-  eddText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.brandDark,
-  },
-  trackContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-  },
-  nodeWrapper: {
-    alignItems: "center",
-    width: 70,
-  },
-  circleNode: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 6,
-  },
-  circleDone: {
-    backgroundColor: theme.colors.success,
-  },
-  circleCurrent: {
-    backgroundColor: theme.colors.brand,
-    borderWidth: 2,
-    borderColor: theme.colors.brandDark,
-  },
-  circleFuture: {
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderWidth: 1,
-    borderColor: theme.colors.borderStrong,
-  },
-  nodeLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-  },
-  nodeLabelCurrent: {
-    color: theme.colors.brandDark,
-    fontWeight: "800",
-  },
-  nodeLabelDone: {
-    color: theme.colors.textSecondary,
-    fontWeight: "700",
-  },
-  nodeWeeks: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-    marginTop: 2,
-    textAlign: "center",
-  },
-  connectorLine: {
-    flex: 1,
-    height: 3,
-    marginBottom: 26,
-    marginHorizontal: -4,
-  },
-  connectorDone: {
-    backgroundColor: theme.colors.success,
-  },
-  connectorPending: {
-    backgroundColor: theme.colors.border,
-  },
-  guidanceBox: {
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: theme.radius.sm,
-    padding: 10,
-    marginTop: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.brand,
-  },
-  guidanceTextCol: {
-    flex: 1,
-  },
-  guidanceTitle: {
-    fontSize: 12,
-    color: theme.colors.textPrimary,
-    lineHeight: 17,
-    fontWeight: "600",
-  },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    container: {
+      backgroundColor: t.colors.surfaceSecondary,
+      borderRadius: t.radius.md,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: t.colors.border,
+      marginBottom: 16,
+    },
+    headerRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16,
+    },
+    titleCol: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: t.colors.textPrimary,
+    },
+    currentAge: {
+      fontSize: 12,
+      color: t.colors.textSecondary,
+      marginTop: 2,
+    },
+    ageBold: {
+      fontWeight: "800",
+      color: t.colors.brandText,
+    },
+    eddBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: t.colors.brandLight,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: t.radius.sm,
+    },
+    eddText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: t.colors.brandDark,
+    },
+    trackContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 8,
+    },
+    nodeWrapper: {
+      alignItems: "center",
+      width: 70,
+    },
+    circleNode: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 6,
+    },
+    circleDone: {
+      backgroundColor: t.colors.success,
+    },
+    circleCurrent: {
+      backgroundColor: t.colors.brand,
+      borderWidth: 2,
+      borderColor: t.colors.brandDark,
+    },
+    circleFuture: {
+      backgroundColor: t.colors.surfaceTertiary,
+      borderWidth: 1,
+      borderColor: t.colors.borderStrong,
+    },
+    nodeLabel: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: t.colors.textSecondary,
+      textAlign: "center",
+    },
+    nodeLabelCurrent: {
+      color: t.colors.brandDark,
+      fontWeight: "800",
+    },
+    nodeLabelDone: {
+      color: t.colors.textSecondary,
+      fontWeight: "700",
+    },
+    nodeWeeks: {
+      fontSize: 11,
+      color: t.colors.textMuted,
+      marginTop: 2,
+      textAlign: "center",
+    },
+    connectorLine: {
+      flex: 1,
+      height: 3,
+      marginBottom: 26,
+      marginHorizontal: -4,
+    },
+    connectorDone: {
+      backgroundColor: t.colors.success,
+    },
+    connectorPending: {
+      backgroundColor: t.colors.border,
+    },
+    guidanceBox: {
+      backgroundColor: t.colors.surfaceTertiary,
+      borderRadius: t.radius.sm,
+      padding: 10,
+      marginTop: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    guidanceTextCol: {
+      flex: 1,
+    },
+    guidanceTitle: {
+      fontSize: 12,
+      color: t.colors.textPrimary,
+      lineHeight: 17,
+      fontWeight: "600",
+    },
+  });

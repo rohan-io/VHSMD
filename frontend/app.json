@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Health Connect",
+    "name": "ମା ଓ ଶିଶୁ ସୁରକ୍ଷା",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -21,6 +21,7 @@
       "package": "com.emergent.anctrackerapp.gneoey"
     },
     "web": {
+      "name": "ମା ଓ ଶିଶୁ ସୁରକ୍ଷା",
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/favicon.png"

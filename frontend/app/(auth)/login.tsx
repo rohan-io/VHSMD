@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -13,12 +13,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 import { useAuth } from "@/src/context/AuthContext";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const { login, isLoading } = useAuth();
 
   const [username, setUsername] = useState("");
@@ -71,9 +74,9 @@ export default function LoginScreen() {
       {/* Top Government Branding Bar */}
       <View style={styles.topGovBar}>
         <View style={styles.emblemBadge}>
-          <Ionicons name="medical" size={14} color="#FFFFFF" />
+          <Ionicons name="medical" size={14} color={t.colors.onBrand} />
         </View>
-        <Text style={styles.topGovText}>National Health Mission · State MCHIS Portal</Text>
+        <Text style={styles.topGovText}>National Health Mission · State Portal</Text>
       </View>
 
       <KeyboardAwareScrollView
@@ -84,14 +87,14 @@ export default function LoginScreen() {
         {/* App Title & Disclaimer Card */}
         <View style={styles.brandingHeader}>
           <View style={styles.logoCircle}>
-            <Ionicons name="shield-checkmark" size={38} color={theme.colors.brand} />
+            <Ionicons name="shield-checkmark" size={38} color={t.colors.brandText} />
           </View>
-          <Text style={styles.appTitle}>HEALTH CONNECT</Text>
-          <Text style={styles.appSubtitle}>
-            Maternal & Child Health Worker Field Management System
+          <Text style={styles.appTitle}>ମା ଓ ଶିଶୁ ସୁରକ୍ଷା</Text>
+          <Text style={styles.appTagline}>
+            Digital Care for Every Mother, Protection for Every Child
           </Text>
           <View style={styles.disclaimerPill}>
-            <Ionicons name="information-circle" size={13} color={theme.colors.brandDark} />
+            <Ionicons name="information-circle" size={13} color={t.colors.brandDark} />
             <Text style={styles.disclaimerText}>
               Official Field Portal for ANM, ASHA & Supervisory Medical Officers
             </Text>
@@ -108,14 +111,14 @@ export default function LoginScreen() {
                 onPress={() => selectRole("Health Worker")}
                 style={({ pressed }) => [styles.credCard, pressed && styles.pressed]}
               >
-                <View style={[styles.credIcon, { backgroundColor: theme.colors.brandLight }]}>
-                  <Ionicons name="woman" size={18} color={theme.colors.brandDark} />
+                <View style={[styles.credIcon, { backgroundColor: t.colors.brandLight }]}>
+                  <Ionicons name="woman" size={18} color={t.colors.brandDark} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.credRole}>Health Worker Login</Text>
                   <Text style={styles.credText}>ANM / ASHA field worker access</Text>
                 </View>
-                <Ionicons name="chevron-forward-circle-outline" size={20} color={theme.colors.textMuted} />
+                <Ionicons name="chevron-forward-circle-outline" size={20} color={t.colors.textMuted} />
               </Pressable>
 
               <Pressable
@@ -123,14 +126,14 @@ export default function LoginScreen() {
                 onPress={() => selectRole("Administrator")}
                 style={({ pressed }) => [styles.credCard, pressed && styles.pressed]}
               >
-                <View style={[styles.credIcon, { backgroundColor: theme.colors.surfaceTertiary }]}>
-                  <Ionicons name="shield-checkmark" size={18} color={theme.colors.textSecondary} />
+                <View style={[styles.credIcon, { backgroundColor: t.colors.surfaceTertiary }]}>
+                  <Ionicons name="shield-checkmark" size={18} color={t.colors.textSecondary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.credRole}>Administrator Login</Text>
                   <Text style={styles.credText}>District / block oversight access</Text>
                 </View>
-                <Ionicons name="chevron-forward-circle-outline" size={20} color={theme.colors.textMuted} />
+                <Ionicons name="chevron-forward-circle-outline" size={20} color={t.colors.textMuted} />
               </Pressable>
             </View>
           </View>
@@ -142,14 +145,14 @@ export default function LoginScreen() {
           <View style={styles.formHeaderRow}>
             <Text style={styles.formTitle}>{selectedRole} Login</Text>
             <Pressable testID="login-change-role-btn" onPress={resetRole} style={styles.changeRoleBtn}>
-              <Ionicons name="swap-horizontal" size={14} color={theme.colors.brand} />
+              <Ionicons name="swap-horizontal" size={14} color={t.colors.brandText} />
               <Text style={styles.changeRoleText}>Change</Text>
             </Pressable>
           </View>
 
           {errorMsg && (
             <View style={styles.errorContainer} testID="login-error-alert">
-              <Ionicons name="alert-circle" size={16} color={theme.colors.error} />
+              <Ionicons name="alert-circle" size={16} color={t.colors.error} />
               <Text style={styles.errorText}>{errorMsg}</Text>
             </View>
           )}
@@ -161,7 +164,7 @@ export default function LoginScreen() {
               <Ionicons
                 name="person-outline"
                 size={18}
-                color={theme.colors.textSecondary}
+                color={t.colors.textSecondary}
                 style={styles.inputIcon}
               />
               <TextInput
@@ -170,7 +173,7 @@ export default function LoginScreen() {
                 value={username}
                 onChangeText={setUsername}
                 placeholder="Enter your username"
-                placeholderTextColor={theme.colors.textMuted}
+                placeholderTextColor={t.colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
@@ -184,7 +187,7 @@ export default function LoginScreen() {
               <Ionicons
                 name="lock-closed-outline"
                 size={18}
-                color={theme.colors.textSecondary}
+                color={t.colors.textSecondary}
                 style={styles.inputIcon}
               />
               <TextInput
@@ -193,7 +196,7 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Enter your password"
-                placeholderTextColor={theme.colors.textMuted}
+                placeholderTextColor={t.colors.textMuted}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
@@ -205,7 +208,7 @@ export default function LoginScreen() {
                 <Ionicons
                   name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={18}
-                  color={theme.colors.textSecondary}
+                  color={t.colors.textSecondary}
                 />
               </Pressable>
             </View>
@@ -221,7 +224,7 @@ export default function LoginScreen() {
               <Ionicons
                 name={rememberMe ? "checkbox" : "square-outline"}
                 size={18}
-                color={theme.colors.brand}
+                color={t.colors.brandText}
               />
               <Text style={styles.rememberText}>Remember session</Text>
             </Pressable>
@@ -246,11 +249,11 @@ export default function LoginScreen() {
             ]}
           >
             {submitting ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <ActivityIndicator color={t.colors.onBrand} size="small" />
             ) : (
               <>
                 <Text style={styles.submitBtnText}>Sign In to MCH Portal</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                <Ionicons name="arrow-forward" size={18} color={t.colors.onBrand} />
               </>
             )}
           </Pressable>
@@ -259,7 +262,7 @@ export default function LoginScreen() {
 
         {/* Security & Offline Notice */}
         <View style={styles.securityNotice}>
-          <Ionicons name="lock-closed" size={14} color={theme.colors.textMuted} />
+          <Ionicons name="lock-closed" size={14} color={t.colors.textMuted} />
           <Text style={styles.securityText}>
             Encrypted session · Works offline · v2.6.4
           </Text>
@@ -271,7 +274,7 @@ export default function LoginScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent} testID="forgot-password-modal">
             <View style={styles.modalHeader}>
-              <Ionicons name="help-buoy-outline" size={24} color={theme.colors.brand} />
+              <Ionicons name="help-buoy-outline" size={24} color={t.colors.brandText} />
               <Text style={styles.modalTitle}>Credential Recovery</Text>
             </View>
             <Text style={styles.modalBody}>
@@ -295,304 +298,301 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-  },
-  topGovBar: {
-    backgroundColor: theme.colors.surfaceInverse,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  emblemBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: theme.colors.brand,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  topGovText: {
-    color: "#E2E8F0",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  brandingHeader: {
-    alignItems: "center",
-    marginVertical: 12,
-  },
-  logoCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: theme.colors.brandLight,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  appTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: theme.colors.textPrimary,
-    letterSpacing: 0.5,
-  },
-  appSubtitle: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    textAlign: "center",
-    marginTop: 2,
-    paddingHorizontal: 20,
-  },
-  disclaimerPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: theme.colors.brandLight,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: theme.radius.pill,
-    marginTop: 10,
-  },
-  disclaimerText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.brandDark,
-    flexShrink: 1,
-  },
-  credSection: {
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-    marginBottom: 10,
-  },
-  credGrid: {
-    gap: 8,
-  },
-  credCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: theme.radius.md,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  credIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  credRole: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: theme.colors.textPrimary,
-  },
-  credText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 1,
-  },
-  credHint: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    marginTop: 8,
-    fontStyle: "italic",
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  formCard: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: theme.radius.lg,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  formTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-    marginBottom: 16,
-  },
-  formHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  changeRoleBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: theme.colors.brandLight,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.radius.pill,
-  },
-  changeRoleText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.brand,
-  },
-  errorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: theme.colors.errorLight,
-    padding: 10,
-    borderRadius: theme.radius.sm,
-    marginBottom: 12,
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    fontWeight: "600",
-    flex: 1,
-  },
-  inputGroup: {
-    marginBottom: 14,
-  },
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: 12,
-    height: 48,
-  },
-  inputIcon: {
-    marginRight: 8,
-  },
-  textInput: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-    height: "100%",
-  },
-  eyeBtn: {
-    padding: 6,
-  },
-  rowBetween: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  rememberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  rememberText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
-  forgotText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.brand,
-  },
-  submitBtn: {
-    backgroundColor: theme.colors.brand,
-    borderRadius: theme.radius.md,
-    height: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  submitBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  securityNotice: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 20,
-  },
-  securityText: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  modalContent: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: theme.radius.lg,
-    padding: 24,
-    width: "100%",
-    maxWidth: 380,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  modalBody: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  bold: {
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  modalCloseBtn: {
-    backgroundColor: theme.colors.brand,
-    borderRadius: theme.radius.md,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  modalCloseBtnText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: t.colors.surface,
+    },
+    topGovBar: {
+      backgroundColor: t.colors.inkBar,
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+    },
+    emblemBadge: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: t.colors.brand,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    topGovText: {
+      color: t.colors.onInkBar,
+      fontSize: 11,
+      fontWeight: "600",
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 40,
+    },
+    brandingHeader: {
+      alignItems: "center",
+      marginVertical: 12,
+    },
+    logoCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: t.colors.brandLight,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 10,
+    },
+    appTitle: {
+      fontFamily: "NotoSansOriya",
+      fontSize: 26,
+      lineHeight: 40,
+      color: t.colors.textPrimary,
+      textAlign: "center",
+    },
+    appTagline: {
+      fontSize: 12,
+      color: t.colors.textSecondary,
+      textAlign: "center",
+      marginTop: 4,
+      paddingHorizontal: 20,
+      lineHeight: 18,
+    },
+    disclaimerPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: t.colors.brandLight,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: t.radius.pill,
+      marginTop: 12,
+    },
+    disclaimerText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: t.colors.brandDark,
+      flexShrink: 1,
+    },
+    credSection: {
+      marginTop: 12,
+      marginBottom: 16,
+    },
+    sectionLabel: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: t.colors.textPrimary,
+      marginBottom: 10,
+    },
+    credGrid: {
+      gap: 8,
+    },
+    credCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      backgroundColor: t.colors.surfaceSecondary,
+      borderRadius: t.radius.md,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: t.colors.border,
+    },
+    credIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    credRole: {
+      fontSize: 13,
+      fontWeight: "800",
+      color: t.colors.textPrimary,
+    },
+    credText: {
+      fontSize: 12,
+      color: t.colors.textSecondary,
+      marginTop: 1,
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+    formCard: {
+      backgroundColor: t.colors.surfaceSecondary,
+      borderRadius: t.radius.lg,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: t.colors.border,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    formTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: t.colors.textPrimary,
+      marginBottom: 16,
+    },
+    formHeaderRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16,
+    },
+    changeRoleBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: t.colors.brandLight,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: t.radius.pill,
+    },
+    changeRoleText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: t.colors.brandText,
+    },
+    errorContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: t.colors.errorLight,
+      padding: 10,
+      borderRadius: t.radius.sm,
+      marginBottom: 12,
+    },
+    errorText: {
+      fontSize: 12,
+      color: t.colors.error,
+      fontWeight: "600",
+      flex: 1,
+    },
+    inputGroup: {
+      marginBottom: 14,
+    },
+    inputLabel: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: t.colors.textPrimary,
+      marginBottom: 6,
+    },
+    inputWrapper: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: t.colors.surfaceTertiary,
+      borderRadius: t.radius.md,
+      borderWidth: 1,
+      borderColor: t.colors.border,
+      paddingHorizontal: 12,
+      height: 48,
+    },
+    inputIcon: {
+      marginRight: 8,
+    },
+    textInput: {
+      flex: 1,
+      fontSize: 14,
+      color: t.colors.textPrimary,
+      height: "100%",
+    },
+    eyeBtn: {
+      padding: 6,
+    },
+    rowBetween: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    rememberRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    rememberText: {
+      fontSize: 12,
+      color: t.colors.textSecondary,
+    },
+    forgotText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: t.colors.brandText,
+    },
+    submitBtn: {
+      backgroundColor: t.colors.brand,
+      borderRadius: t.radius.md,
+      height: 50,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+    },
+    btnDisabled: {
+      opacity: 0.6,
+    },
+    submitBtnText: {
+      color: t.colors.onBrand,
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    securityNotice: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      marginTop: 20,
+    },
+    securityText: {
+      fontSize: 12,
+      color: t.colors.textMuted,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(9, 8, 6, 0.7)",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    },
+    modalContent: {
+      backgroundColor: t.colors.surfaceSecondary,
+      borderRadius: t.radius.lg,
+      padding: 24,
+      width: "100%",
+      maxWidth: 380,
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 12,
+    },
+    modalTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: t.colors.textPrimary,
+    },
+    modalBody: {
+      fontSize: 13,
+      color: t.colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: 20,
+    },
+    bold: {
+      fontWeight: "700",
+      color: t.colors.textPrimary,
+    },
+    modalCloseBtn: {
+      backgroundColor: t.colors.brand,
+      borderRadius: t.radius.md,
+      paddingVertical: 12,
+      alignItems: "center",
+    },
+    modalCloseBtnText: {
+      color: t.colors.onBrand,
+      fontSize: 13,
+      fontWeight: "700",
+    },
+  });

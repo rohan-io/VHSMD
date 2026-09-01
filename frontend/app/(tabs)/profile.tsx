@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -10,14 +10,24 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "@/src/constants/theme";
+import { useTheme, useThemeMode, type ThemeMode } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
 import { useAuth } from "@/src/context/AuthContext";
 import { useOfflineSync } from "@/src/context/OfflineSyncContext";
 import { useToast } from "@/src/components/Toast";
 
+const THEME_OPTIONS: { mode: ThemeMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { mode: "light", label: "Light", icon: "sunny-outline" },
+  { mode: "dark", label: "Dark", icon: "moon-outline" },
+  { mode: "system", label: "System", icon: "phone-portrait-outline" },
+];
+
 export default function ProfileScreen() {
   const router = useRouter();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
+  const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
   const { user, logout } = useAuth();
   const { isSimulatedOffline, toggleSimulatedOffline, pendingCount, lastSyncTime } = useOfflineSync();
   const { showToast } = useToast();
@@ -45,16 +55,16 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.profileName}>{user?.name}</Text>
           <View style={styles.roleBadge}>
-            <Ionicons name="ribbon" size={12} color={theme.colors.brandDark} />
+            <Ionicons name="ribbon" size={12} color={t.colors.brandDark} />
             <Text style={styles.roleText}>{user?.role}</Text>
           </View>
           <View style={styles.profileMetaRow}>
             <View style={styles.profileMetaItem}>
-              <Ionicons name="call-outline" size={14} color={theme.colors.textSecondary} />
+              <Ionicons name="call-outline" size={14} color={t.colors.textSecondary} />
               <Text style={styles.profileMetaText}>{user?.mobile || "—"}</Text>
             </View>
             <View style={styles.profileMetaItem}>
-              <Ionicons name="business-outline" size={14} color={theme.colors.textSecondary} />
+              <Ionicons name="business-outline" size={14} color={t.colors.textSecondary} />
               <Text style={styles.profileMetaText}>{user?.phc_center || "—"}</Text>
             </View>
           </View>
@@ -63,8 +73,8 @@ export default function ProfileScreen() {
         {/* Simulated Offline Toggle */}
         <Text style={styles.sectionTitle}>Field Connectivity</Text>
         <View style={styles.toggleCard}>
-          <View style={[styles.toggleIcon, { backgroundColor: isSimulatedOffline ? theme.colors.errorLight : theme.colors.brandLight }]}>
-            <Ionicons name={isSimulatedOffline ? "cloud-offline" : "cloud-done"} size={20} color={isSimulatedOffline ? theme.colors.error : theme.colors.brand} />
+          <View style={[styles.toggleIcon, { backgroundColor: isSimulatedOffline ? t.colors.errorLight : t.colors.brandLight }]}>
+            <Ionicons name={isSimulatedOffline ? "cloud-offline" : "cloud-done"} size={20} color={isSimulatedOffline ? t.colors.error : t.colors.brandText} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.toggleLabel}>Simulated Offline Mode</Text>
@@ -76,9 +86,39 @@ export default function ProfileScreen() {
             testID="profile-offline-switch"
             value={isSimulatedOffline}
             onValueChange={toggleSimulatedOffline}
-            trackColor={{ false: theme.colors.borderStrong, true: "#FCA5A5" }}
-            thumbColor={isSimulatedOffline ? theme.colors.error : "#FFFFFF"}
+            trackColor={{ false: t.colors.borderStrong, true: t.colors.error }}
+            thumbColor={isSimulatedOffline ? t.colors.errorLight : "#FFFFFF"}
           />
+        </View>
+
+        {/* Appearance */}
+        <Text style={styles.sectionTitle}>Appearance</Text>
+        <View style={styles.appearanceCard}>
+          <View style={styles.segmented} testID="theme-mode-control">
+            {THEME_OPTIONS.map((opt) => {
+              const active = themeMode === opt.mode;
+              return (
+                <Pressable
+                  key={opt.mode}
+                  testID={`theme-mode-${opt.mode}`}
+                  onPress={() => setThemeMode(opt.mode)}
+                  style={[styles.segment, active && styles.segmentActive]}
+                >
+                  <Ionicons
+                    name={opt.icon}
+                    size={16}
+                    color={active ? t.colors.brandText : t.colors.textSecondary}
+                  />
+                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.appearanceHint}>
+            System follows your device&apos;s light/dark setting.
+          </Text>
         </View>
 
         {/* Menu rows */}
@@ -86,49 +126,57 @@ export default function ProfileScreen() {
         {rows.map((r, i) => (
           <Pressable key={i} testID={`profile-row-${i}`} onPress={r.action} style={styles.menuRow}>
             <View style={styles.menuIcon}>
-              <Ionicons name={r.icon} size={20} color={theme.colors.brandDark} />
+              <Ionicons name={r.icon} size={20} color={t.colors.brandDark} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.menuLabel}>{r.label}</Text>
               <Text style={styles.menuSub} numberOfLines={1}>{r.sub}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+            <Ionicons name="chevron-forward" size={18} color={t.colors.textMuted} />
           </Pressable>
         ))}
 
         <Pressable testID="profile-logout-btn" onPress={handleLogout} style={styles.logoutBtn}>
-          <Ionicons name="log-out-outline" size={18} color={theme.colors.error} />
+          <Ionicons name="log-out-outline" size={18} color={t.colors.error} />
           <Text style={styles.logoutText}>Sign Out</Text>
         </Pressable>
 
-        <Text style={styles.footerText}>Health Connect · v2.6.4</Text>
+        <Text style={styles.footerText}>ମା ଓ ଶିଶୁ ସୁରକ୍ଷା · v2.6.4</Text>
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.surface },
-  scroll: { padding: 16, paddingBottom: 32 },
-  profileCard: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.lg, padding: 20, alignItems: "center", borderWidth: 1, borderColor: theme.colors.border },
-  bigAvatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: theme.colors.brand, alignItems: "center", justifyContent: "center", marginBottom: 10 },
-  bigAvatarText: { fontSize: 30, fontWeight: "800", color: "#FFFFFF" },
-  profileName: { fontSize: 18, fontWeight: "800", color: theme.colors.textPrimary },
-  roleBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: theme.colors.brandLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: theme.radius.pill, marginTop: 6 },
-  roleText: { fontSize: 12, fontWeight: "800", color: theme.colors.brandDark },
-  profileMetaRow: { flexDirection: "row", gap: 16, marginTop: 12, flexWrap: "wrap", justifyContent: "center" },
-  profileMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  profileMetaText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: "600" },
-  sectionTitle: { fontSize: 14, fontWeight: "800", color: theme.colors.textPrimary, marginTop: 20, marginBottom: 10 },
-  toggleCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, borderWidth: 1, borderColor: theme.colors.border },
-  toggleIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  toggleLabel: { fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
-  toggleSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
-  menuRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.border },
-  menuIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surfaceTertiary, alignItems: "center", justifyContent: "center" },
-  menuLabel: { fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
-  menuSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
-  logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: theme.colors.errorLight, borderRadius: theme.radius.md, paddingVertical: 14, marginTop: 20 },
-  logoutText: { fontSize: 14, fontWeight: "800", color: theme.colors.error },
-  footerText: { textAlign: "center", fontSize: 11, color: theme.colors.textMuted, fontWeight: "700", marginTop: 20 },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.colors.surface },
+    scroll: { padding: 16, paddingBottom: 32 },
+    profileCard: { backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.lg, padding: 20, alignItems: "center", borderWidth: 1, borderColor: t.colors.border },
+    bigAvatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: t.colors.brand, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+    bigAvatarText: { fontSize: 30, fontWeight: "800", color: t.colors.onBrand },
+    profileName: { fontSize: 18, fontWeight: "800", color: t.colors.textPrimary },
+    roleBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: t.colors.brandLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: t.radius.pill, marginTop: 6 },
+    roleText: { fontSize: 12, fontWeight: "800", color: t.colors.brandDark },
+    profileMetaRow: { flexDirection: "row", gap: 16, marginTop: 12, flexWrap: "wrap", justifyContent: "center" },
+    profileMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+    profileMetaText: { fontSize: 12, color: t.colors.textSecondary, fontWeight: "600" },
+    sectionTitle: { fontSize: 14, fontWeight: "800", color: t.colors.textPrimary, marginTop: 20, marginBottom: 10 },
+    toggleCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, padding: 14, borderWidth: 1, borderColor: t.colors.border },
+    toggleIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+    toggleLabel: { fontSize: 14, fontWeight: "700", color: t.colors.textPrimary },
+    toggleSub: { fontSize: 12, color: t.colors.textSecondary, marginTop: 2 },
+    appearanceCard: { backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, padding: 14, borderWidth: 1, borderColor: t.colors.border },
+    segmented: { flexDirection: "row", backgroundColor: t.colors.surfaceTertiary, borderRadius: t.radius.md, padding: 4, gap: 4 },
+    segment: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 44, borderRadius: t.radius.sm },
+    segmentActive: { backgroundColor: t.colors.surfaceSecondary, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+    segmentText: { fontSize: 13, fontWeight: "700", color: t.colors.textSecondary },
+    segmentTextActive: { color: t.colors.brandText },
+    appearanceHint: { fontSize: 12, color: t.colors.textMuted, marginTop: 10 },
+    menuRow: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: t.colors.border },
+    menuIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.colors.surfaceTertiary, alignItems: "center", justifyContent: "center" },
+    menuLabel: { fontSize: 14, fontWeight: "700", color: t.colors.textPrimary },
+    menuSub: { fontSize: 12, color: t.colors.textSecondary, marginTop: 2 },
+    logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: t.colors.errorLight, borderRadius: t.radius.md, paddingVertical: 14, marginTop: 20 },
+    logoutText: { fontSize: 14, fontWeight: "800", color: t.colors.error },
+    footerText: { fontFamily: "NotoSansOriya", textAlign: "center", fontSize: 12, color: t.colors.textMuted, fontWeight: "400", marginTop: 20 },
+  });

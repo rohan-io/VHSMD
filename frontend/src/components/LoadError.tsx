@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 
 interface Props {
   message?: string;
@@ -17,35 +18,40 @@ export const LoadError: React.FC<Props> = ({
   message = "Can't reach the server right now.",
   onRetry,
   testID,
-}) => (
-  <View style={styles.wrap} testID={testID}>
-    <Ionicons name="cloud-offline-outline" size={40} color={theme.colors.textMuted} />
-    <Text style={styles.title}>Couldn&apos;t load</Text>
-    <Text style={styles.sub}>{message}</Text>
-    <Pressable
-      onPress={onRetry}
-      style={styles.btn}
-      testID={testID ? `${testID}-retry` : undefined}
-    >
-      <Ionicons name="refresh" size={15} color="#FFFFFF" />
-      <Text style={styles.btnText}>Retry</Text>
-    </Pressable>
-  </View>
-);
+}) => {
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
+  return (
+    <View style={styles.wrap} testID={testID}>
+      <Ionicons name="cloud-offline-outline" size={40} color={t.colors.textMuted} />
+      <Text style={styles.title}>Couldn&apos;t load</Text>
+      <Text style={styles.sub}>{message}</Text>
+      <Pressable
+        onPress={onRetry}
+        style={styles.btn}
+        testID={testID ? `${testID}-retry` : undefined}
+      >
+        <Ionicons name="refresh" size={15} color={t.colors.onBrand} />
+        <Text style={styles.btnText}>Retry</Text>
+      </Pressable>
+    </View>
+  );
+};
 
-const styles = StyleSheet.create({
-  wrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 8, minHeight: 240 },
-  title: { fontSize: 15, fontWeight: "700", color: theme.colors.textPrimary, marginTop: 4 },
-  sub: { fontSize: 12, color: theme.colors.textSecondary, textAlign: "center" },
-  btn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 8,
-    backgroundColor: theme.colors.brand,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  btnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    wrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 8, minHeight: 240 },
+    title: { fontSize: 15, fontWeight: "700", color: t.colors.textPrimary, marginTop: 4 },
+    sub: { fontSize: 12, color: t.colors.textSecondary, textAlign: "center" },
+    btn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 8,
+      backgroundColor: t.colors.brand,
+      borderRadius: t.radius.md,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+    },
+    btnText: { color: t.colors.onBrand, fontSize: 13, fontWeight: "700" },
+  });
