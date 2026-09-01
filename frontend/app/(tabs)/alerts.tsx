@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,11 +12,13 @@ import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
 import { LoadError } from "@/src/components/LoadError";
 import { useToast } from "@/src/components/Toast";
 import { useArmConfirm } from "@/src/hooks/use-arm-confirm";
+import { priorityColor } from "@/src/utils/priority";
 import { listAlerts, acknowledgeAlert, recalcAlerts } from "@/src/api/mch";
 import { AlertItem } from "@/src/types";
 
@@ -28,15 +30,11 @@ const SEGMENTS = [
   { key: "child", label: "Child Vaccine", match: (a: AlertItem) => a.alert_type.startsWith("CHILD_VACCINE") },
 ];
 
-const PRIORITY_COLOR: Record<string, string> = {
-  CRITICAL: theme.colors.error,
-  HIGH: "#EA580C",
-  MEDIUM: theme.colors.warning,
-  LOW: theme.colors.info,
-};
-
 export default function AlertsScreen() {
   const router = useRouter();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
+  const PRIORITY_COLOR = useMemo(() => priorityColor(t), [t]);
   const { showToast } = useToast();
   const [items, setItems] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,10 +81,11 @@ export default function AlertsScreen() {
   const filtered = items.filter(segMatch);
 
   const renderItem = ({ item }: { item: AlertItem }) => {
-    const color = PRIORITY_COLOR[item.priority] || theme.colors.info;
+    const color = PRIORITY_COLOR[item.priority] || t.colors.info;
+    const armed = armedId === item.id;
     return (
       <View style={styles.card} testID={`alert-card-${item.id}`}>
-        <View style={[styles.priorityStrip, { backgroundColor: color }]} />
+        <Ionicons name="alert-circle" size={20} color={color} style={styles.priorityIcon} />
         <View style={{ flex: 1 }}>
           <View style={styles.cardHeader}>
             <View style={[styles.priorityPill, { backgroundColor: `${color}18` }]}>
@@ -108,21 +107,27 @@ export default function AlertsScreen() {
               }
               style={styles.viewBtn}
             >
-              <Ionicons name="eye-outline" size={15} color={theme.colors.brandDark} />
+              <Ionicons name="eye-outline" size={15} color={t.colors.brandDark} />
               <Text style={styles.viewBtnText}>View Record</Text>
             </Pressable>
             <Pressable
               testID={`alert-ack-${item.id}`}
               onPress={() => { if (confirm(item.id)) handleAck(item.id); }}
               disabled={busyId === item.id}
-              style={[styles.ackBtn, armedId === item.id && styles.ackBtnArmed]}
+              style={[styles.ackBtn, armed && styles.ackBtnArmed]}
             >
               {busyId === item.id ? (
-                <ActivityIndicator size="small" color="#FFF" />
+                <ActivityIndicator size="small" color={t.colors.onBrand} />
               ) : (
                 <>
-                  <Ionicons name={armedId === item.id ? "checkmark-done" : "checkmark"} size={15} color="#FFF" />
-                  <Text style={styles.ackBtnText}>{armedId === item.id ? "Tap to confirm" : "Acknowledge"}</Text>
+                  <Ionicons
+                    name={armed ? "checkmark-done" : "checkmark"}
+                    size={15}
+                    color={armed ? t.colors.onWarning : t.colors.onBrand}
+                  />
+                  <Text style={[styles.ackBtnText, armed && { color: t.colors.onWarning }]}>
+                    {armed ? "Tap to confirm" : "Acknowledge"}
+                  </Text>
                 </>
               )}
             </Pressable>
@@ -152,7 +157,7 @@ export default function AlertsScreen() {
 
       {loading ? (
         <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={theme.colors.brand} />
+          <ActivityIndicator size="large" color={t.colors.brand} />
           <Text style={styles.loadingText}>Running alert engine batches…</Text>
         </View>
       ) : error ? (
@@ -166,7 +171,7 @@ export default function AlertsScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.centerFill}>
-              <Ionicons name="checkmark-done-circle-outline" size={44} color={theme.colors.success} />
+              <Ionicons name="checkmark-done-circle-outline" size={44} color={t.colors.success} />
               <Text style={styles.emptyText}>All beneficiary records are up to date. No pending alerts.</Text>
             </View>
           }
@@ -176,31 +181,32 @@ export default function AlertsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.surface },
-  stickyHeader: { backgroundColor: theme.colors.surfaceSecondary, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  chipRow: { gap: 8, paddingHorizontal: 16 },
-  chip: { height: 44, flexShrink: 0, justifyContent: "center", paddingHorizontal: 16, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surfaceTertiary, borderWidth: 1, borderColor: theme.colors.border },
-  chipActive: { backgroundColor: theme.colors.brand, borderColor: theme.colors.brand },
-  chipText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary },
-  chipTextActive: { color: "#FFFFFF" },
-  centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 10, minHeight: 240 },
-  loadingText: { color: theme.colors.textSecondary, fontSize: 13 },
-  emptyText: { fontSize: 13, color: theme.colors.textSecondary, textAlign: "center" },
-  listContent: { padding: 16, paddingBottom: 32 },
-  card: { flexDirection: "row", gap: 12, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border, overflow: "hidden" },
-  priorityStrip: { width: 4, alignSelf: "stretch", borderRadius: 2 },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-  priorityPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-  priorityText: { fontSize: 12, fontWeight: "800" },
-  dueDate: { fontSize: 12, color: theme.colors.textMuted, fontWeight: "600" },
-  title: { fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
-  msg: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 3, lineHeight: 17 },
-  worker: { fontSize: 12, color: theme.colors.textMuted, marginTop: 6, fontWeight: "600" },
-  actions: { flexDirection: "row", gap: 8, marginTop: 12 },
-  viewBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: theme.colors.brandLight, borderRadius: theme.radius.sm, paddingVertical: 12 },
-  viewBtnText: { fontSize: 13, fontWeight: "700", color: theme.colors.brandDark },
-  ackBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: theme.colors.brand, borderRadius: theme.radius.sm, paddingVertical: 12 },
-  ackBtnArmed: { backgroundColor: theme.colors.warning },
-  ackBtnText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.colors.surface },
+    stickyHeader: { backgroundColor: t.colors.surfaceSecondary, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: t.colors.border },
+    chipRow: { gap: 8, paddingHorizontal: 16 },
+    chip: { height: 44, flexShrink: 0, justifyContent: "center", paddingHorizontal: 16, borderRadius: t.radius.pill, backgroundColor: t.colors.surfaceTertiary, borderWidth: 1, borderColor: t.colors.border },
+    chipActive: { backgroundColor: t.colors.brand, borderColor: t.colors.brand },
+    chipText: { fontSize: 12, fontWeight: "700", color: t.colors.textSecondary },
+    chipTextActive: { color: t.colors.onBrand },
+    centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40, gap: 10, minHeight: 240 },
+    loadingText: { color: t.colors.textSecondary, fontSize: 13 },
+    emptyText: { fontSize: 13, color: t.colors.textSecondary, textAlign: "center" },
+    listContent: { padding: 16, paddingBottom: 32 },
+    card: { flexDirection: "row", gap: 12, backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: t.colors.border },
+    priorityIcon: { marginTop: 1 },
+    cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+    priorityPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+    priorityText: { fontSize: 12, fontWeight: "800" },
+    dueDate: { fontSize: 12, color: t.colors.textMuted, fontWeight: "600" },
+    title: { fontSize: 14, fontWeight: "700", color: t.colors.textPrimary },
+    msg: { fontSize: 12, color: t.colors.textSecondary, marginTop: 3, lineHeight: 17 },
+    worker: { fontSize: 12, color: t.colors.textMuted, marginTop: 6, fontWeight: "600" },
+    actions: { flexDirection: "row", gap: 8, marginTop: 12 },
+    viewBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: t.colors.brandLight, borderRadius: t.radius.sm, paddingVertical: 12 },
+    viewBtnText: { fontSize: 13, fontWeight: "700", color: t.colors.brandDark },
+    ackBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: t.colors.brand, borderRadius: t.radius.sm, paddingVertical: 12 },
+    ackBtnArmed: { backgroundColor: t.colors.warning },
+    ackBtnText: { fontSize: 13, fontWeight: "700", color: t.colors.onBrand },
+  });

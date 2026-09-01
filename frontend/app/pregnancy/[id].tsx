@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { theme } from "@/src/constants/theme";
+import { useTheme } from "@/src/context/ThemeContext";
+import type { Theme } from "@/src/constants/theme";
 import { Header } from "@/src/components/Header";
 import { StatusBadge } from "@/src/components/StatusBadge";
 import { TrimesterTimeline } from "@/src/components/TrimesterTimeline";
@@ -26,6 +27,8 @@ type Tab = "visits" | "vaccines" | "vitals";
 
 export default function PregnancyDetailScreen() {
   const router = useRouter();
+  const t = useTheme();
+  const styles = useMemo(() => makeStyles(t), [t]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const { showToast } = useToast();
 
@@ -80,7 +83,7 @@ export default function PregnancyDetailScreen() {
       <View style={styles.root}>
         <Header title="Pregnancy Record" showBack showOfflineToggle={false} />
         <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={theme.colors.brand} />
+          <ActivityIndicator size="large" color={t.colors.brand} />
         </View>
       </View>
     );
@@ -125,12 +128,12 @@ export default function PregnancyDetailScreen() {
             </View>
           </View>
           <View style={styles.bannerMeta}>
-            <View style={styles.metaChip}><Ionicons name="call" size={12} color={theme.colors.brandDark} /><Text style={styles.metaChipText}>{p.mobile_number}</Text></View>
-            <View style={styles.metaChip}><Ionicons name="location" size={12} color={theme.colors.brandDark} /><Text style={styles.metaChipText}>{p.village}, {p.block}</Text></View>
+            <View style={styles.metaChip}><Ionicons name="call" size={12} color={t.colors.brandDark} /><Text style={styles.metaChipText}>{p.mobile_number}</Text></View>
+            <View style={styles.metaChip}><Ionicons name="location" size={12} color={t.colors.brandDark} /><Text style={styles.metaChipText}>{p.village}, {p.block}</Text></View>
           </View>
           {p.is_high_risk && (
             <View style={styles.riskBanner}>
-              <Ionicons name="warning" size={15} color="#991B1B" />
+              <Ionicons name="warning" size={15} color={t.colors.errorText} />
               <Text style={styles.riskBannerText}>
                 HIGH RISK: {(p.high_risk_reasons || []).join(", ") || "Requires close monitoring"}
               </Text>
@@ -153,7 +156,7 @@ export default function PregnancyDetailScreen() {
             onPress={() => router.push(`/anc/record?pregnancyId=${p.id}&visitNumber=${visits.length + 1}` as any)}
             style={styles.primaryAction}
           >
-            <Ionicons name="clipboard" size={16} color="#FFF" />
+            <Ionicons name="clipboard" size={16} color={t.colors.onBrand} />
             <Text style={styles.primaryActionText}>Record ANC Visit</Text>
           </Pressable>
           {!isTrulyDelivered(p) && (
@@ -162,7 +165,7 @@ export default function PregnancyDetailScreen() {
               onPress={() => router.push(`/child/register?motherId=${p.id}` as any)}
               style={styles.secondaryAction}
             >
-              <Ionicons name="person-add" size={16} color={theme.colors.brandDark} />
+              <Ionicons name="person-add" size={16} color={t.colors.brandDark} />
               <Text style={styles.secondaryActionText}>Register Child</Text>
             </Pressable>
           )}
@@ -197,7 +200,7 @@ export default function PregnancyDetailScreen() {
                   </View>
                   {v.advice ? (
                     <View style={styles.adviceRow}>
-                      <Ionicons name="chatbubble-ellipses-outline" size={13} color={theme.colors.textMuted} />
+                      <Ionicons name="chatbubble-ellipses-outline" size={13} color={t.colors.textMuted} />
                       <Text style={styles.advice}>{v.advice}</Text>
                     </View>
                   ) : null}
@@ -210,39 +213,48 @@ export default function PregnancyDetailScreen() {
         {tab === "vaccines" && (
           <View>
             <Text style={styles.demoNote}>Sample schedule shown. Confirm against the approved national schedule before clinical use.</Text>
-            {imms.map((im) => (
-              <View key={im.id} style={styles.recordCard} testID={`mat-imm-${im.id}`}>
-                <View style={styles.recordHeader}>
-                  <Text style={styles.recordTitle} numberOfLines={1}>{im.vaccine_name}</Text>
-                  <StatusBadge status={im.status} />
-                </View>
-                <Text style={styles.recordSub}>{im.dose} • Due {im.due_date}</Text>
-                <Text style={styles.recordDesc}>{im.description}</Text>
-                {im.status !== "Completed" && im.status !== "Upcoming" && (
-                  <Pressable
-                    testID={`complete-mat-imm-${im.id}`}
-                    onPress={() => { if (confirm(im.id)) markImm(im.id); }}
-                    disabled={busyId === im.id}
-                    style={[styles.markBtn, armedId === im.id && styles.markBtnArmed]}
-                  >
-                    {busyId === im.id ? (
-                      <ActivityIndicator size="small" color="#FFF" />
-                    ) : (
-                      <>
-                        <Ionicons name={armedId === im.id ? "checkmark-done-circle" : "checkmark-circle"} size={15} color="#FFF" />
-                        <Text style={styles.markBtnText}>{armedId === im.id ? "Tap to confirm" : "Mark Administered"}</Text>
-                      </>
-                    )}
-                  </Pressable>
-                )}
-                {im.status === "Completed" && im.administration_date ? (
-                  <View style={styles.givenRow}>
-                    <Ionicons name="checkmark-circle" size={13} color="#065F46" />
-                    <Text style={styles.givenText}>Given on {im.administration_date} • Batch {im.batch_number || "—"}</Text>
+            {imms.map((im) => {
+              const armed = armedId === im.id;
+              return (
+                <View key={im.id} style={styles.recordCard} testID={`mat-imm-${im.id}`}>
+                  <View style={styles.recordHeader}>
+                    <Text style={styles.recordTitle} numberOfLines={1}>{im.vaccine_name}</Text>
+                    <StatusBadge status={im.status} />
                   </View>
-                ) : null}
-              </View>
-            ))}
+                  <Text style={styles.recordSub}>{im.dose} • Due {im.due_date}</Text>
+                  <Text style={styles.recordDesc}>{im.description}</Text>
+                  {im.status !== "Completed" && im.status !== "Upcoming" && (
+                    <Pressable
+                      testID={`complete-mat-imm-${im.id}`}
+                      onPress={() => { if (confirm(im.id)) markImm(im.id); }}
+                      disabled={busyId === im.id}
+                      style={[styles.markBtn, armed && styles.markBtnArmed]}
+                    >
+                      {busyId === im.id ? (
+                        <ActivityIndicator size="small" color={t.colors.onStatus} />
+                      ) : (
+                        <>
+                          <Ionicons
+                            name={armed ? "checkmark-done-circle" : "checkmark-circle"}
+                            size={15}
+                            color={armed ? t.colors.onWarning : t.colors.onStatus}
+                          />
+                          <Text style={[styles.markBtnText, armed && { color: t.colors.onWarning }]}>
+                            {armed ? "Tap to confirm" : "Mark Administered"}
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+                  )}
+                  {im.status === "Completed" && im.administration_date ? (
+                    <View style={styles.givenRow}>
+                      <Ionicons name="checkmark-circle" size={13} color={t.colors.successText} />
+                      <Text style={styles.givenText}>Given on {im.administration_date} • Batch {im.batch_number || "—"}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
           </View>
         )}
 
@@ -274,9 +286,9 @@ export default function PregnancyDetailScreen() {
             <Text style={styles.sectionTitle}>Linked Children</Text>
             {children.map((c) => (
               <Pressable key={c.id} testID={`linked-child-${c.id}`} onPress={() => router.push(`/child/${c.id}` as any)} style={styles.childLink}>
-                <Ionicons name="people-outline" size={18} color={theme.colors.info} />
+                <Ionicons name="people-outline" size={18} color={t.colors.info} />
                 <Text style={styles.childLinkText}>{c.child_name} • {c.age_label}</Text>
-                <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
+                <Ionicons name="chevron-forward" size={16} color={t.colors.textMuted} />
               </Pressable>
             ))}
           </View>
@@ -286,53 +298,54 @@ export default function PregnancyDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.surface },
-  scroll: { padding: 16, paddingBottom: 40 },
-  centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 },
-  emptyText: { fontSize: 13, color: theme.colors.textSecondary, textAlign: "center", padding: 16 },
-  banner: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.lg, padding: 16, borderWidth: 1, borderColor: theme.colors.border, marginBottom: 12 },
-  bannerTop: { flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: theme.colors.brandLight, alignItems: "center", justifyContent: "center" },
-  avatarText: { fontSize: 20, fontWeight: "800", color: theme.colors.brandDark },
-  name: { fontSize: 17, fontWeight: "800", color: theme.colors.textPrimary },
-  sub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
-  bannerMeta: { flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap" },
-  metaChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: theme.colors.brandLight, paddingHorizontal: 8, paddingVertical: 5, borderRadius: theme.radius.sm },
-  metaChipText: { fontSize: 12, fontWeight: "700", color: theme.colors.brandDark },
-  riskBanner: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: theme.colors.errorLight, borderRadius: theme.radius.sm, padding: 12, marginTop: 12 },
-  riskBannerText: { flex: 1, fontSize: 13, fontWeight: "700", color: "#991B1B" },
-  actionRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
-  primaryAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: theme.colors.brand, borderRadius: theme.radius.md, paddingVertical: 12 },
-  primaryActionText: { color: "#FFF", fontSize: 13, fontWeight: "700" },
-  secondaryAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: theme.colors.brandLight, borderRadius: theme.radius.md, paddingVertical: 12 },
-  secondaryActionText: { color: theme.colors.brandDark, fontSize: 13, fontWeight: "700" },
-  tabBar: { flexDirection: "row", backgroundColor: theme.colors.surfaceTertiary, borderRadius: theme.radius.md, padding: 4, marginBottom: 14 },
-  tabBtn: { flex: 1, paddingVertical: 12, borderRadius: theme.radius.sm, alignItems: "center" },
-  tabBtnActive: { backgroundColor: theme.colors.surfaceSecondary, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  tabText: { fontSize: 12, fontWeight: "700", color: theme.colors.textSecondary },
-  tabTextActive: { color: theme.colors.brand },
-  recordCard: { backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: theme.colors.border },
-  recordHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
-  recordTitle: { flex: 1, fontSize: 14, fontWeight: "700", color: theme.colors.textPrimary },
-  recordSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 3 },
-  recordDesc: { fontSize: 12, color: theme.colors.textMuted, marginTop: 4 },
-  vitalGrid: { flexDirection: "row", justifyContent: "space-between", marginTop: 10, backgroundColor: theme.colors.surfaceTertiary, borderRadius: theme.radius.sm, padding: 10 },
-  vitalItem: { alignItems: "center" },
-  vitalLabel: { fontSize: 12, color: theme.colors.textMuted, fontWeight: "700" },
-  vitalVal: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: "800", marginTop: 2 },
-  adviceRow: { flexDirection: "row", gap: 6, marginTop: 8, alignItems: "flex-start" },
-  advice: { flex: 1, fontSize: 12, color: theme.colors.textSecondary, lineHeight: 17 },
-  demoNote: { fontSize: 12, color: theme.colors.textMuted, fontStyle: "italic", marginBottom: 10 },
-  markBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: theme.colors.success, borderRadius: theme.radius.sm, paddingVertical: 12, marginTop: 10 },
-  markBtnArmed: { backgroundColor: theme.colors.warning },
-  markBtnText: { color: "#FFF", fontSize: 13, fontWeight: "700" },
-  givenRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
-  givenText: { flex: 1, fontSize: 12, color: "#065F46", fontWeight: "700" },
-  infoRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: theme.colors.divider, gap: 12 },
-  infoLabel: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: "600" },
-  infoVal: { fontSize: 12, color: theme.colors.textPrimary, fontWeight: "700", flex: 1, textAlign: "right" },
-  sectionTitle: { fontSize: 14, fontWeight: "800", color: theme.colors.textPrimary, marginBottom: 10 },
-  childLink: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: theme.colors.surfaceSecondary, borderRadius: theme.radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.border },
-  childLinkText: { flex: 1, fontSize: 13, fontWeight: "700", color: theme.colors.textPrimary },
-});
+const makeStyles = (t: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.colors.surface },
+    scroll: { padding: 16, paddingBottom: 40 },
+    centerFill: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 },
+    emptyText: { fontSize: 13, color: t.colors.textSecondary, textAlign: "center", padding: 16 },
+    banner: { backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.lg, padding: 16, borderWidth: 1, borderColor: t.colors.border, marginBottom: 12 },
+    bannerTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+    avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: t.colors.brandLight, alignItems: "center", justifyContent: "center" },
+    avatarText: { fontSize: 20, fontWeight: "800", color: t.colors.brandDark },
+    name: { fontSize: 17, fontWeight: "800", color: t.colors.textPrimary },
+    sub: { fontSize: 12, color: t.colors.textSecondary, marginTop: 1 },
+    bannerMeta: { flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap" },
+    metaChip: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: t.colors.brandLight, paddingHorizontal: 8, paddingVertical: 5, borderRadius: t.radius.sm },
+    metaChipText: { fontSize: 12, fontWeight: "700", color: t.colors.brandDark },
+    riskBanner: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: t.colors.errorLight, borderRadius: t.radius.sm, padding: 12, marginTop: 12 },
+    riskBannerText: { flex: 1, fontSize: 13, fontWeight: "700", color: t.colors.errorText },
+    actionRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
+    primaryAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: t.colors.brand, borderRadius: t.radius.md, paddingVertical: 12 },
+    primaryActionText: { color: t.colors.onBrand, fontSize: 13, fontWeight: "700" },
+    secondaryAction: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: t.colors.brandLight, borderRadius: t.radius.md, paddingVertical: 12 },
+    secondaryActionText: { color: t.colors.brandDark, fontSize: 13, fontWeight: "700" },
+    tabBar: { flexDirection: "row", backgroundColor: t.colors.surfaceTertiary, borderRadius: t.radius.md, padding: 4, marginBottom: 14 },
+    tabBtn: { flex: 1, paddingVertical: 12, borderRadius: t.radius.sm, alignItems: "center" },
+    tabBtnActive: { backgroundColor: t.colors.surfaceSecondary, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+    tabText: { fontSize: 12, fontWeight: "700", color: t.colors.textSecondary },
+    tabTextActive: { color: t.colors.brandText },
+    recordCard: { backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: t.colors.border },
+    recordHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
+    recordTitle: { flex: 1, fontSize: 14, fontWeight: "700", color: t.colors.textPrimary },
+    recordSub: { fontSize: 12, color: t.colors.textSecondary, marginTop: 3 },
+    recordDesc: { fontSize: 12, color: t.colors.textMuted, marginTop: 4 },
+    vitalGrid: { flexDirection: "row", justifyContent: "space-between", marginTop: 10, backgroundColor: t.colors.surfaceTertiary, borderRadius: t.radius.sm, padding: 10 },
+    vitalItem: { alignItems: "center" },
+    vitalLabel: { fontSize: 12, color: t.colors.textMuted, fontWeight: "700" },
+    vitalVal: { fontSize: 14, color: t.colors.textPrimary, fontWeight: "800", marginTop: 2 },
+    adviceRow: { flexDirection: "row", gap: 6, marginTop: 8, alignItems: "flex-start" },
+    advice: { flex: 1, fontSize: 12, color: t.colors.textSecondary, lineHeight: 17 },
+    demoNote: { fontSize: 12, color: t.colors.textMuted, fontStyle: "italic", marginBottom: 10 },
+    markBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: t.colors.success, borderRadius: t.radius.sm, paddingVertical: 12, marginTop: 10 },
+    markBtnArmed: { backgroundColor: t.colors.warning },
+    markBtnText: { color: t.colors.onStatus, fontSize: 13, fontWeight: "700" },
+    givenRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 },
+    givenText: { flex: 1, fontSize: 12, color: t.colors.successText, fontWeight: "700" },
+    infoRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: t.colors.divider, gap: 12 },
+    infoLabel: { fontSize: 12, color: t.colors.textSecondary, fontWeight: "600" },
+    infoVal: { fontSize: 12, color: t.colors.textPrimary, fontWeight: "700", flex: 1, textAlign: "right" },
+    sectionTitle: { fontSize: 14, fontWeight: "800", color: t.colors.textPrimary, marginBottom: 10 },
+    childLink: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: t.colors.surfaceSecondary, borderRadius: t.radius.md, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: t.colors.border },
+    childLinkText: { flex: 1, fontSize: 13, fontWeight: "700", color: t.colors.textPrimary },
+  });
